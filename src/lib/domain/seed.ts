@@ -6,6 +6,8 @@ import { paySalary, setBudget } from './budget';
 import { addMonths, budgetMonthOf, budgetMonthStart, todayIso } from './dates';
 import { createEmptyDataset } from './defaults';
 import { saveAccount, savePot, saveTag } from './entities';
+import { saveRecurring } from './recurring';
+import { saveRule } from './rules';
 import { saveTransaction } from './transactions';
 import type { Dataset, Id, Language } from './types';
 
@@ -212,5 +214,68 @@ export function createSeedDataset(lang: Language = 'de', today = todayIso()): Da
     const m = addMonths(start, i);
     for (const [de, en, amt] of budgetPlan) setBudget(d, m, byName(de, en), amt);
   }
+  const nextMonth = budgetMonthStart(addMonths(currentMonth, 1));
+  const rec = (
+    name: string,
+    catDe: string,
+    catEn: string,
+    amount: number,
+    rrule: string,
+    next: string,
+    sub: boolean,
+  ) =>
+    saveRecurring(d, {
+      name,
+      template: {
+        accountId: priv,
+        amount: -amount,
+        payee: name,
+        note: '',
+        tagIds: [],
+        splits: [{ categoryId: byName(catDe, catEn), amount: -amount, note: '' }],
+      },
+      rrule,
+      nextDate: next,
+      isSubscription: sub,
+    });
+  rec(
+    'Wohngenossenschaft',
+    'Miete',
+    'Rent',
+    95000,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=2',
+    nextMonth.slice(0, 8) + '02',
+    false,
+  );
+  rec(
+    'Krankenkasse Muster',
+    'Krankenkasse',
+    'Health insurance',
+    31500,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=2',
+    nextMonth.slice(0, 8) + '02',
+    false,
+  );
+  rec(
+    'Streaming Erfunden',
+    'Abos',
+    'Subscriptions',
+    1290,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=20',
+    `${currentMonth}-20` > today ? `${currentMonth}-20` : nextMonth.slice(0, 8) + '20',
+    true,
+  );
+  rec(
+    'Cloudspeicher',
+    'Abos',
+    'Subscriptions',
+    2900,
+    'FREQ=YEARLY;INTERVAL=1;BYMONTHDAY=5',
+    `${addMonths(currentMonth, 4)}-05`,
+    true,
+  );
+  saveRule(d, { pattern: 'migros', categoryId: byName('Lebensmittel', 'Groceries') });
+  saveRule(d, { pattern: 'coop', categoryId: byName('Lebensmittel', 'Groceries') });
+  saveRule(d, { pattern: 'sbb', categoryId: byName('ÖV', 'Public transport') });
   return d;
 }

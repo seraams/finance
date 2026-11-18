@@ -89,3 +89,53 @@ Mindestens 10 Zeichen; eine grobe Stärkeanzeige ohne externe Bibliothek.
 ### D19 – Bekannte Audit-Meldung
 
 `npm audit` meldet eine ReDoS-Lücke in `picomatch` (über `svelte-check`, `typescript-eslint`). Betroffen sind nur Entwicklungswerkzeuge mit Glob-Mustern aus dem Repo selbst, nicht die ausgelieferte App.
+
+## Phase 2
+
+### D20 – CSV-Profile
+
+Ein Importprofil speichert Trennzeichen, Kopfzeile, zu überspringende Vorspann-Zeilen, Datumsformat, Vorzeichenumkehr und die Spaltenzuordnung (Spaltenname bzw. Spaltennummer ohne Kopfzeile). Beträge kommen entweder aus einer Spalte mit Vorzeichen oder aus getrennten Spalten «Belastung/Gutschrift». Ohne Profil schlägt die App Trennzeichen, Kopfzeile, Spalten und Datumsformat automatisch vor.
+
+### D21 – camt.053
+
+Geparst mit `DOMParser`, unabhängig von Namensraum und Version. Nur gebuchte Einträge (`Sts` = `BOOK` oder fehlend) werden übernommen; Storno (`RvslInd`) kehrt das Vorzeichen um. Empfänger: bei Abflüssen der Kreditor, bei Zuflüssen der Debitor, sonst `AddtlNtryInf`. Der Schlusssaldo (`CLBD`) wird in der Vorschau neben dem App-Saldo angezeigt.
+
+### D22 – Duplikat-Hash
+
+Schlüssel = Bankreferenz (falls vorhanden), sonst Konto + Datum + Betrag + normalisierter Text. Gleiche Schlüssel innerhalb einer Datei werden durchnummeriert, damit zwei identische Kaffees am selben Tag nicht als Duplikat gelten. Hash: FNV-1a (nicht kryptografisch, reicht zur Erkennung). Gespeichert in `Transaction.importHash`.
+
+### D23 – Regeln und Vorschläge
+
+Regeln vergleichen ohne Gross-/Kleinschreibung und Akzente («Text enthält»). Reihenfolge: Priorität, dann längeres Muster zuerst. Vorschläge entstehen aus Empfängern, die mindestens zweimal einheitlich derselben Kategorie zugeordnet wurden und von keiner Regel erfasst sind. Das Muster ist das erste Wort des Empfängers (bei kurzen Wörtern die ersten zwei), ohne Zahlen, Datum und «Karte».
+
+### D24 – Wiederkehrende Buchungen
+
+RRULE-Teilmenge: `FREQ` (DAILY/WEEKLY/MONTHLY/YEARLY), `INTERVAL`, `BYMONTHDAY`. Der Ankertag verhindert, dass ein 31. nach Februar dauerhaft zum 28. wird. Fällige Termine werden beim Entsperren und danach einmal täglich automatisch gebucht. Vorlagen mit ungültigem Konto werden deaktiviert statt Fehler zu werfen.
+
+### D25 – Rücklagen
+
+r = (B − A) / n, wobei A der Topfstand zu Monatsbeginn ist (ohne die Beiträge des laufenden Monats) und n die Anzahl Budgetmonate bis zum Fälligkeitsmonat (mindestens 1). Der Beitrag wird vom **Monatsbudget** in die Rücklage gebucht (er ist Teil von S). Liegt die Fälligkeit in der Vergangenheit, gibt es keinen Beitrag, sondern einen Hinweis, das Datum anzupassen.
+
+### D26 – Reste im Monatsabschluss
+
+Am Ende von Monat M bleibt im Monatsbudget-Topf genau die Summe der positiven Reste von Kategorien mit `rolloverRest`. Ein Überschuss geht in den Puffer (`rest`), ein Fehlbetrag wird aus dem Puffer gedeckt (`overspend`). Das deckt überzogene Kategorien und unverplantes Geld in einem Schritt ab und hält die Invariante. Die Bewegungen tragen die Notiz `closing:M` und werden nur einmal gebucht.
+
+### D27 – Überlauf
+
+Verteilt auf Sparziele mit Gewicht > 0, die ihren Zielbetrag noch nicht erreicht haben. Anteile werden auf den fehlenden Betrag begrenzt; was übrig bleibt, bleibt im Puffer.
+
+### D28 – Gesperrte Monate
+
+Ein abgeschlossener Monat friert seine Snapshots ein. Buchungen darin lassen sich weiterhin ändern, die Eingabemaske zeigt dann eine Warnung. Ein Monat kann wieder geöffnet werden.
+
+### D29 – Korrekturbuchung beim Bankabgleich
+
+Die Differenz wird als unkategorisierte Buchung am letzten Tag des Monats erfasst. Nach den Regeln aus D1 wirkt ein Fehlbetrag auf das Monatsbudget und ein Überschuss auf den Puffer.
+
+### D30 – PWA
+
+`vite-plugin-pwa` (generateSW, autoUpdate). Der Service Worker cacht ausschliesslich die gebauten App-Dateien (JS, CSS, HTML, Icons, Manifest), keine Laufzeitdaten. Die Registrierung erfolgt über eine externe Datei (`registerSW.js`), damit die CSP ohne Inline-Skripte auskommt.
+
+### D31 – Speichern vor dem Download der Sicherung
+
+Der Vermerk «letzte Sicherung» wird gespeichert, bevor die Datei erzeugt wird. Sonst ging er verloren, wenn die Seite direkt nach dem Download geschlossen wurde, und der Einrichtungsschritt erschien erneut.

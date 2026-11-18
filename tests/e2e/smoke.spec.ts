@@ -1,38 +1,13 @@
 import { expect, test } from '@playwright/test';
-
-const PASS = 'velo tanne kaffee nebel';
+import { collectProblems, PASS, setupVault } from './helpers';
 
 test('einrichten, Buchung erfassen, sperren, entsperren – Buchung ist noch da', async ({
   page,
 }) => {
-  const problems: string[] = [];
-  page.on('console', (m) => {
-    if (m.type() === 'error') problems.push(m.text());
-  });
-  page.on('pageerror', (e) => problems.push(e.message));
-  // Keine Anfragen an Dritte
-  page.on('request', (r) => {
-    const url = new URL(r.url());
-    if (url.hostname !== 'localhost') problems.push(`third-party request: ${r.url()}`);
-  });
+  const problems = collectProblems(page);
 
-  await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Willkommen' })).toBeVisible();
-
-  // 1. Einrichten
-  await page.getByLabel('Passphrase', { exact: true }).fill(PASS);
-  await page.getByLabel('Passphrase wiederholen').fill(PASS);
-  await page.getByRole('checkbox').check();
-  await page.getByRole('button', { name: 'Tresor anlegen' }).click();
-
-  // Erzwungene erste Sicherung
-  const finish = page.getByRole('button', { name: 'Los geht’s' });
-  await expect(finish).toBeDisabled();
-  const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Sicherung herunterladen' }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/\.finanz$/);
-  await finish.click();
+  // 1. Einrichten (inkl. erzwungener Sicherung)
+  await setupVault(page);
 
   // 2. Konto anlegen
   await page.getByRole('button', { name: /Neues Konto/ }).click();
