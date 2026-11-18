@@ -143,8 +143,15 @@ export interface Recurring {
   /** RFC-5545-RRULE (Teilmenge), z. B. `FREQ=MONTHLY;INTERVAL=1`. */
   rrule: string;
   nextDate: IsoDate;
+  /** Letztes mögliches Datum (inklusiv), optional. */
+  endDate?: IsoDate;
   isSubscription: boolean;
+  name: string;
+  active: boolean;
 }
+
+export type CsvField = 'date' | 'amount' | 'debit' | 'credit' | 'payee' | 'note' | 'reference';
+export type DateFormat = 'dd.mm.yyyy' | 'yyyy-mm-dd' | 'dd/mm/yyyy' | 'mm/dd/yyyy';
 
 export interface ImportProfile {
   id: Id;
@@ -152,9 +159,15 @@ export interface ImportProfile {
   bank: string;
   format: 'csv' | 'camt053';
   accountId?: Id;
-  columnMapping: Record<string, string>;
+  /** Feld → Spaltenname (bei Kopfzeile) bzw. Spaltennummer ab 0 (ohne). */
+  columnMapping: Partial<Record<CsvField, string>>;
   delimiter?: string;
-  dateFormat?: string;
+  dateFormat?: DateFormat;
+  hasHeader?: boolean;
+  /** Zeilen vor der Kopfzeile überspringen (Bank-Vorspann). */
+  skipRows?: number;
+  /** Vorzeichen umkehren (z. B. Kreditkartenauszüge). */
+  invertSign?: boolean;
 }
 
 export interface Rule {

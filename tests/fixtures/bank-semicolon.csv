@@ -1,0 +1,9 @@
+Kontoauszug Privatkonto (erfundene Testdaten)
+IBAN;CH00 0000 0000 0000 0000 0
+Buchungsdatum;Buchungstext;Mitteilung;Belastung;Gutschrift;Referenz
+02.03.2026;"MIGROS M BERN";Karte 1234;45.90;;REF-001
+02.03.2026;"MIGROS M BERN";Karte 1234;45.90;;REF-002
+05.03.2026;"Werkstudium Erfunden AG";"Lohn März; Teil 1";;"1'850.00";REF-003
+07.03.2026;"SBB CFF FFS";"Halbtax ""Verlängerung""";185.00;;REF-004
+31.02.2026;Ungültiges Datum;;10.00;;REF-005
+08.03.2026;Ohne Betrag;;;;REF-006

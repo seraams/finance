@@ -4,6 +4,7 @@
 import { unlockDelayMs, WrongPassphraseError } from '../crypto/crypto';
 import { todayIso } from '../domain/dates';
 import { createEmptyDataset } from '../domain/defaults';
+import { materializeDue } from '../domain/recurring';
 import { updateSnapshots } from '../domain/snapshots';
 import type { Dataset, Id, Language, Theme } from '../domain/types';
 import { i18n } from '../i18n/index.svelte';
@@ -96,6 +97,7 @@ export class Session {
       this.data = d;
       this.status = 'unlocked';
       this.startAutoLock();
+      this.runDueTasks();
       return 'ok';
     } catch (e) {
       if (!(e instanceof WrongPassphraseError)) throw e;
@@ -161,6 +163,20 @@ export class Session {
     this.data = d;
   }
 
+  private lastDueRun = '';
+
+  /** Bucht fällige wiederkehrende Buchungen (einmal pro Tag bzw. nach dem Entsperren). */
+  runDueTasks(): void {
+    const today = todayIso();
+    if (!this.data) return;
+    this.lastDueRun = today;
+    const n = materializeDue(this.data, today);
+    if (n > 0) {
+      this.scheduleSave();
+      this.showToast(i18n.t('rec.booked', { n }));
+    }
+  }
+
   scheduleSave(): void {
     this.saveState = 'pending';
     if (this.saveTimer) clearTimeout(this.saveTimer);
@@ -204,11 +220,12 @@ export class Session {
 
   async downloadBackup(): Promise<void> {
     const d = this.requireData();
-    await this.flush();
     d.settings.lastBackupAt = new Date().toISOString();
+    // Erst sicher speichern, dann herunterladen – so geht der Vermerk nicht verloren.
+    this.saveState = 'pending';
+    await this.flush();
     const file = await this.repo.exportBackup($state.snapshot(d) as Dataset);
     downloadText(`finanzplaner-${dateStamp()}.finanz`, file, 'application/octet-stream');
-    this.scheduleSave();
   }
 
   // ---------- Darstellung ----------
@@ -272,6 +289,7 @@ export class Session {
   };
 
   private checkIdle = (): void => {
+    if (this.lastDueRun !== todayIso()) this.runDueTasks();
     const minutes = this.data?.settings.autoLockMinutes ?? 10;
     if (minutes > 0 && Date.now() - this.lastActivity >= minutes * 60_000) void this.lock();
   };
