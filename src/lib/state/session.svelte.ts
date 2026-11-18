@@ -4,6 +4,15 @@
 import { unlockDelayMs, WrongPassphraseError } from '../crypto/crypto';
 import { todayIso } from '../domain/dates';
 import { createEmptyDataset } from '../domain/defaults';
+import {
+  addAttachment,
+  orphanBlobIds,
+  pruneAttachmentMeta,
+  removeAttachment,
+} from '../domain/attachments';
+import { uuidv7 } from '../domain/ids';
+import { materializeDue } from '../domain/recurring';
+import { processImage } from '../ui/image';
 import { updateSnapshots } from '../domain/snapshots';
 import type { Dataset, Id, Language, Theme } from '../domain/types';
 import { i18n } from '../i18n/index.svelte';
@@ -96,6 +105,8 @@ export class Session {
       this.data = d;
       this.status = 'unlocked';
       this.startAutoLock();
+      this.runDueTasks();
+      void this.cleanupAttachments();
       return 'ok';
     } catch (e) {
       if (!(e instanceof WrongPassphraseError)) throw e;
@@ -161,6 +172,20 @@ export class Session {
     this.data = d;
   }
 
+  private lastDueRun = '';
+
+  /** Bucht fällige wiederkehrende Buchungen (einmal pro Tag bzw. nach dem Entsperren). */
+  runDueTasks(): void {
+    const today = todayIso();
+    if (!this.data) return;
+    this.lastDueRun = today;
+    const n = materializeDue(this.data, today);
+    if (n > 0) {
+      this.scheduleSave();
+      this.showToast(i18n.t('rec.booked', { n }));
+    }
+  }
+
   scheduleSave(): void {
     this.saveState = 'pending';
     if (this.saveTimer) clearTimeout(this.saveTimer);
@@ -200,15 +225,52 @@ export class Session {
     await this.savePromise;
   }
 
+  // ---------- Belege ----------
+
+  /** Verkleinert, verschlüsselt und speichert ein Foto für eine Buchung. */
+  async addPhoto(transactionId: Id, file: Blob): Promise<void> {
+    const img = await processImage(file);
+    const id = uuidv7();
+    await this.repo.putAttachment(id, img.bytes);
+    // Die Buchung existiert evtl. noch nicht (neue Buchung): Metadaten trotzdem anlegen.
+    this.mutate((d) =>
+      addAttachment(d, { id, transactionId, mime: img.mime, size: img.bytes.byteLength }),
+    );
+  }
+
+  /** Entschlüsselt einen Beleg und gibt eine Blob-URL zurück (Aufrufer gibt sie frei). */
+  async attachmentUrl(id: Id): Promise<string | null> {
+    const meta = this.data?.attachments.find((a) => a.id === id);
+    const bytes = await this.repo.getAttachment(id);
+    if (!bytes) return null;
+    return URL.createObjectURL(new Blob([bytes], { type: meta?.mime ?? 'image/jpeg' }));
+  }
+
+  async removePhoto(id: Id): Promise<void> {
+    this.mutate((d) => removeAttachment(d, id));
+    await this.repo.deleteAttachment(id);
+  }
+
+  /** Entfernt verwaiste Belege (z. B. nach Löschen einer Buchung). */
+  async cleanupAttachments(): Promise<void> {
+    if (!this.data || !this.repo.isUnlocked()) return;
+    const prunedMeta = pruneAttachmentMeta(this.data);
+    const stored = await this.repo.listAttachmentIds();
+    const orphans = orphanBlobIds(this.data, stored);
+    for (const id of orphans) await this.repo.deleteAttachment(id);
+    if (prunedMeta.length) this.scheduleSave();
+  }
+
   // ---------- Sicherung ----------
 
   async downloadBackup(): Promise<void> {
     const d = this.requireData();
-    await this.flush();
     d.settings.lastBackupAt = new Date().toISOString();
+    // Erst sicher speichern, dann herunterladen – so geht der Vermerk nicht verloren.
+    this.saveState = 'pending';
+    await this.flush();
     const file = await this.repo.exportBackup($state.snapshot(d) as Dataset);
     downloadText(`finanzplaner-${dateStamp()}.finanz`, file, 'application/octet-stream');
-    this.scheduleSave();
   }
 
   // ---------- Darstellung ----------
@@ -272,6 +334,7 @@ export class Session {
   };
 
   private checkIdle = (): void => {
+    if (this.lastDueRun !== todayIso()) this.runDueTasks();
     const minutes = this.data?.settings.autoLockMinutes ?? 10;
     if (minutes > 0 && Date.now() - this.lastActivity >= minutes * 60_000) void this.lock();
   };

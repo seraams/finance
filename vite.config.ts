@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { VitePWA } from 'vite-plugin-pwa';
 
 /**
  * Basis-Pfad für GitHub Pages: /<REPO-NAME>/.
@@ -14,10 +15,10 @@ function pagesBase(): string {
 }
 
 /**
- * Erlaubte Ziele für fetch(). Die optionale Kurs-API (Phase 4) wird hier
- * ergänzt, sobald es sie gibt. Bis dahin: nur 'self'.
+ * Erlaubte Ziele für fetch(): nur die eigene Herkunft und die optionale
+ * Kurs-API (CoinGecko). Der Abruf ist standardmässig in den Einstellungen aus.
  */
-const CONNECT_SRC = ["'self'"];
+const CONNECT_SRC = ["'self'", 'https://api.coingecko.com'];
 
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -52,7 +53,39 @@ function cspPlugin(): Plugin {
 
 export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview ? pagesBase() : '/',
-  plugins: [svelte(), cspPlugin()],
+  plugins: [
+    svelte(),
+    cspPlugin(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'Finanzplaner',
+        short_name: 'Finanzen',
+        description: 'Persönlicher Finanzplaner – Daten verschlüsselt auf dem Gerät.',
+        lang: 'de-CH',
+        start_url: '.',
+        scope: '.',
+        display: 'standalone',
+        background_color: '#f7f7f5',
+        theme_color: '#2b6a59',
+        icons: [
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        // Nur statische App-Dateien – niemals Daten (die liegen verschlüsselt in IndexedDB).
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        navigateFallback: 'index.html',
+        runtimeCaching: [],
+        cleanupOutdatedCaches: true,
+      },
+      devOptions: { enabled: false },
+    }),
+  ],
   build: {
     target: 'es2022',
     sourcemap: false,

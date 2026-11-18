@@ -58,6 +58,8 @@ export interface Transaction {
   importHash?: string;
   tagIds: Id[];
   attachmentIds: Id[];
+  /** Kauf/Verkauf einer Position: Geldfluss im Anlagekonto (zählt nicht als Einnahme/Ausgabe). */
+  holdingId?: Id;
 }
 
 export interface Split {
@@ -143,8 +145,15 @@ export interface Recurring {
   /** RFC-5545-RRULE (Teilmenge), z. B. `FREQ=MONTHLY;INTERVAL=1`. */
   rrule: string;
   nextDate: IsoDate;
+  /** Letztes mögliches Datum (inklusiv), optional. */
+  endDate?: IsoDate;
   isSubscription: boolean;
+  name: string;
+  active: boolean;
 }
+
+export type CsvField = 'date' | 'amount' | 'debit' | 'credit' | 'payee' | 'note' | 'reference';
+export type DateFormat = 'dd.mm.yyyy' | 'yyyy-mm-dd' | 'dd/mm/yyyy' | 'mm/dd/yyyy';
 
 export interface ImportProfile {
   id: Id;
@@ -152,9 +161,15 @@ export interface ImportProfile {
   bank: string;
   format: 'csv' | 'camt053';
   accountId?: Id;
-  columnMapping: Record<string, string>;
+  /** Feld → Spaltenname (bei Kopfzeile) bzw. Spaltennummer ab 0 (ohne). */
+  columnMapping: Partial<Record<CsvField, string>>;
   delimiter?: string;
-  dateFormat?: string;
+  dateFormat?: DateFormat;
+  hasHeader?: boolean;
+  /** Zeilen vor der Kopfzeile überspringen (Bank-Vorspann). */
+  skipRows?: number;
+  /** Vorzeichen umkehren (z. B. Kreditkartenauszüge). */
+  invertSign?: boolean;
 }
 
 export interface Rule {
@@ -178,8 +193,12 @@ export interface Security {
   ticker?: string;
   name: string;
   currency: string;
-  kind: 'stock' | 'etf' | 'fund' | 'crypto' | 'other';
+  kind: SecurityKind;
+  /** CoinGecko-ID für den optionalen Kursabruf (nur Krypto), z. B. `bitcoin`. */
+  coingeckoId?: string;
 }
+
+export type SecurityKind = 'stock' | 'etf' | 'fund' | 'crypto' | 'other';
 
 export interface Holding {
   id: Id;
@@ -229,6 +248,8 @@ export interface Settings {
   priceFetchEnabled: boolean;
   /** Zeitpunkt der letzten verschlüsselten Sicherung (ISO). */
   lastBackupAt?: string;
+  /** Ausgeblendete Hinweise (Schlüssel je Zeitraum). */
+  dismissedHints?: string[];
 }
 
 export interface Dataset {
@@ -254,11 +275,16 @@ export interface Dataset {
   settings: Settings;
 }
 
-/** Konten-Typen, die standardmässig nicht budgetrelevant sind (nur Vermögen). */
+/**
+ * Konten-Typen, die standardmässig nicht budgetrelevant sind (nur Vermögen).
+ * Schulden zählen ebenfalls nicht, damit eine Schuld den Puffer nicht ins
+ * Minus drückt; Raten werden stattdessen aus dem Monatsbudget bezahlt.
+ */
 export const NON_BUDGET_ACCOUNT_TYPES: readonly AccountType[] = [
   'brokerage',
   'pension3a',
   'crypto',
+  'debt',
 ];
 
 export const ACCOUNT_TYPES: readonly AccountType[] = [

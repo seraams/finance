@@ -103,6 +103,33 @@ docs/             SECURITY.md, DECISIONS.md
 
 Der Speicher steckt hinter dem Interface `Repository`. Ein späteres `HttpRepository` (z. B. für ein eigenes Backend auf einem Raspberry Pi) lässt sich einsetzen, ohne die UI anzufassen.
 
+## Funktionen
+
+- **Buchungen:** Schnelleingabe am Handy, Aufteilen auf mehrere Kategorien, Umbuchungen, geteilte Kosten über Personenkonten, Suche und Filter
+- **Puffer & Budget:** Selbst-Gehalt mit Anlaufphase, Monatsbudget pro Kategorie, Sparziele, Rücklagen mit automatischem Monatsbeitrag, Überlauf-Verteilung
+- **Bank-Import:** CSV mit frei konfigurierbarer Spaltenzuordnung (Profile speicherbar) und camt.053 (ISO 20022), Vorschau, Duplikaterkennung
+- **Auto-Regeln:** «Text enthält … → Kategorie», Vorschläge aus deinen bisherigen Zuordnungen
+- **Fixkosten & Abos:** wiederkehrende Buchungen, Abo-Liste mit Jahreskosten und nächster Fälligkeit, automatische Buchung bei Fälligkeit
+- **Monatsabschluss in 7 Schritten:** unkategorisierte Buchungen, Bankabgleich, offene Salden bei Personen, Reste, Selbst-Gehalt, Überlauf, Bericht und Sperre
+- **Dashboard:** Reichweite des Puffers, Restbudget, Ausgaben nach Kategorie, Einnahmen vs. Ausgaben, Sparquote, Jahresübersicht
+- **Geteilte Kosten:** «wer schuldet wem», gleichmässig aufteilen, Ausgleichsbuchung (z. B. per Twint)
+- **Schulden:** Schuldkonten mit Ratenplan (wiederkehrende Umbuchung), Restlaufzeit
+- **Rückerstattungen:** mit der Originalbuchung verknüpft, senken die Ausgabe der Kategorie
+- **Belegfotos:** im Browser verkleinert, Metadaten entfernt, einzeln verschlüsselt
+- **Hinweise:** Monatsabschluss fällig, Budget zu 80 % verbraucht, Abo bald fällig, Puffer unter 2 Monaten, alte Sicherung
+- **Vermögen:** Depot, Säule 3a und Krypto mit Positionen (Stückzahl, Kaufkurs), Kauf/Verkauf, Kurse manuell oder per CSV, optionaler Krypto-Kursabruf (CoinGecko, standardmässig aus), Vermögensverlauf
+- **Jahresübersicht:** Monate mit Vermögensentwicklung, Ausgaben nach Kategorie, bester und schwächster Monat
+- **PWA:** installierbar und vollständig offline nutzbar
+- **Export/Import:** verschlüsselte Sicherung (`.finanz`), Klartext-JSON/CSV nach Bestätigung
+
 ## Stand
 
-Phase 1 (MVP) ist umgesetzt. Phase 2 bis 4 (Bank-Import, Regeln, Abos, Monatsabschluss, PWA, geteilte Kosten, Belege, Vermögen) folgen.
+Alle vier Phasen sind umgesetzt: MVP, Alltag, Komfort und Vermögen.
+
+## Installieren (PWA)
+
+- **Android/Chrome:** Menü → «App installieren».
+- **iPhone/Safari:** Teilen → «Zum Home-Bildschirm».
+- **Desktop/Chrome oder Edge:** Installieren-Symbol in der Adressleiste.
+
+Die Daten liegen pro Browser bzw. installierter App getrennt. Zum Umziehen auf ein anderes Gerät: Sicherung herunterladen und dort «Aus Sicherung wiederherstellen».

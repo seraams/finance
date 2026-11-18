@@ -6,7 +6,14 @@
 <h1>{t('nav.more')}</h1>
 <div class="card">
   <ul class="list">
+    <li><a class="list-item" href="#/closing">✓ {t('nav.closing')}</a></li>
     <li><a class="list-item" href="#/accounts">▭ {t('nav.accounts')}</a></li>
+    <li><a class="list-item" href="#/invest">▲ {t('nav.invest')}</a></li>
+    <li><a class="list-item" href="#/year">▦ {t('nav.year')}</a></li>
+    <li><a class="list-item" href="#/shared">⇄ {t('nav.shared')}</a></li>
+    <li><a class="list-item" href="#/recurring">↻ {t('nav.recurring')}</a></li>
+    <li><a class="list-item" href="#/import">⇣ {t('nav.import')}</a></li>
+    <li><a class="list-item" href="#/rules">⚑ {t('nav.rules')}</a></li>
     <li><a class="list-item" href="#/categories"># {t('nav.categories')}</a></li>
     <li><a class="list-item" href="#/settings">⚙ {t('nav.settings')}</a></li>
     <li><a class="list-item" href="#/data">⇅ {t('nav.data')}</a></li>

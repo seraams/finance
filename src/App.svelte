@@ -6,10 +6,17 @@
   import Accounts from './routes/Accounts.svelte';
   import Budget from './routes/Budget.svelte';
   import Categories from './routes/Categories.svelte';
+  import Closing from './routes/Closing.svelte';
+  import Import from './routes/Import.svelte';
+  import Recurring from './routes/Recurring.svelte';
+  import Rules from './routes/Rules.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import Data from './routes/Data.svelte';
   import More from './routes/More.svelte';
   import Settings from './routes/Settings.svelte';
+  import Shared from './routes/Shared.svelte';
+  import Investments from './routes/Investments.svelte';
+  import Year from './routes/Year.svelte';
   import Setup from './routes/Setup.svelte';
   import TransactionForm from './routes/TransactionForm.svelte';
   import Transactions from './routes/Transactions.svelte';
@@ -33,14 +40,34 @@
     { path: '/', key: 'nav.dashboard', icon: '◎', section: '' },
     { path: '/tx', key: 'nav.transactions', icon: '≡', section: 'tx' },
     { path: '/budget', key: 'nav.budget', icon: '◐', section: 'budget' },
+    { path: '/closing', key: 'nav.closing', icon: '✓', section: 'closing' },
     { path: '/accounts', key: 'nav.accounts', icon: '▭', section: 'accounts' },
+    { path: '/invest', key: 'nav.invest', icon: '▲', section: 'invest' },
+    { path: '/year', key: 'nav.year', icon: '▦', section: 'year' },
+    { path: '/shared', key: 'nav.shared', icon: '⇄', section: 'shared' },
+    { path: '/recurring', key: 'nav.recurring', icon: '↻', section: 'recurring' },
+    { path: '/import', key: 'nav.import', icon: '⇣', section: 'import' },
+    { path: '/rules', key: 'nav.rules', icon: '⚑', section: 'rules' },
     { path: '/categories', key: 'nav.categories', icon: '#', section: 'categories' },
     { path: '/settings', key: 'nav.settings', icon: '⚙', section: 'settings' },
     { path: '/data', key: 'nav.data', icon: '⇅', section: 'data' },
   ];
   const mobileItems = $derived([navItems[0]!, navItems[1]!, navItems[2]!]);
   const moreActive = $derived(
-    ['accounts', 'categories', 'settings', 'data', 'more'].includes(section),
+    [
+      'accounts',
+      'categories',
+      'settings',
+      'data',
+      'more',
+      'import',
+      'shared',
+      'invest',
+      'year',
+      'rules',
+      'recurring',
+      'closing',
+    ].includes(section),
   );
 </script>
 
@@ -116,6 +143,24 @@
         <Settings />
       {:else if section === 'data'}
         <Data />
+      {:else if section === 'invest'}
+        <Investments />
+      {:else if section === 'year'}
+        <Year />
+      {:else if section === 'shared'}
+        <Shared />
+      {:else if section === 'import'}
+        <Import />
+      {:else if section === 'rules'}
+        <Rules />
+      {:else if section === 'recurring'}
+        {#key router.route.query.toString()}
+          <Recurring />
+        {/key}
+      {:else if section === 'closing'}
+        {#key router.route.query.toString()}
+          <Closing />
+        {/key}
       {:else if section === 'more'}
         <More />
       {:else}
