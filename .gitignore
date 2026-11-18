@@ -1,0 +1,26 @@
+# Abhängigkeiten und Build
+node_modules/
+dist/
+dev-dist/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.vite/
+
+# Niemals echte Finanzdaten, Exporte oder Schlüssel ins Repository!
+*.finanz
+exports/
+finanzplaner-*.json
+finanzplaner-*.csv
+*-export*.json
+*.key
+*.pem
+.env
+.env.*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
