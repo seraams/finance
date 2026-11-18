@@ -15,10 +15,10 @@ function pagesBase(): string {
 }
 
 /**
- * Erlaubte Ziele für fetch(). Die optionale Kurs-API (Phase 4) wird hier
- * ergänzt, sobald es sie gibt. Bis dahin: nur 'self'.
+ * Erlaubte Ziele für fetch(): nur die eigene Herkunft und die optionale
+ * Kurs-API (CoinGecko). Der Abruf ist standardmässig in den Einstellungen aus.
  */
-const CONNECT_SRC = ["'self'"];
+const CONNECT_SRC = ["'self'", 'https://api.coingecko.com'];
 
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",

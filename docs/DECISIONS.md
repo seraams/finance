@@ -169,3 +169,33 @@ Es gibt keinen Server für Push-Nachrichten, deshalb zeigt die Übersicht Hinwei
 - letzte Sicherung älter als 30 Tage (zusätzlich zum Auftrag)
 
 Ausgeblendete Hinweise werden mit einem Schlüssel pro Zeitraum gespeichert (z. B. Kategorie + Monat). Im nächsten Monat erscheint ein Hinweis darum wieder. Gespeichert werden höchstens die letzten 200 Schlüssel.
+
+## Phase 4
+
+### D37 – Wert eines Anlagekontos
+
+Wert = Geldsaldo aus Buchungen + Marktwert der Positionen (Stückzahl × letzter bekannter Kurs bis zum Stichtag; ohne Kurs gilt der Kaufkurs). Ein Kauf erhöht die Position und erzeugt eine Buchung mit `holdingId`, die den Geldsaldo um Kurs × Stück + Gebühren senkt. So bleibt der Wert beim Kauf unverändert. Solche Buchungen zählen weder als Einnahme noch als Ausgabe und erscheinen nicht als «unkategorisiert». Wer nur den Bestand pflegen will (z. B. bestehendes 3a-Konto), nutzt «Bestand erfassen» ohne Geldfluss.
+
+### D38 – Kaufkurs und realisierte Gewinne
+
+Beim Kauf gilt der gewichtete Durchschnitts-Kaufkurs inklusive Gebühren. Beim Verkauf bleibt der Kaufkurs pro Stück gleich, die Stückzahl sinkt. Der realisierte Gewinn wird angezeigt, aber nicht als Einkommen gebucht; er steckt im Geldsaldo und damit im Vermögen. Kursgewinne fliessen nicht in den Puffer. Geld aus dem Depot zurück auf ein budgetrelevantes Konto ist eine Umbuchung und landet nach D1 im Puffer.
+
+### D39 – Anlagekonten bleiben nicht budgetrelevant
+
+Depot, 3a und Krypto sind standardmässig nicht budgetrelevant (Auftrag). Markiert man ein Anlagekonto trotzdem als budgetrelevant, zählt für die Invariante nur der Geldsaldo, nicht der Marktwert.
+
+### D40 – Kurse
+
+Kurse werden pro Wertpapier und Tag gespeichert (ein Kurs pro Tag; ein neuer Eintrag ersetzt den alten). Quellen: manuelle Eingabe, der Kurs eines Kaufs/Verkaufs, CSV-Import (Spalten Datum, ISIN/Ticker/Symbol, Kurs; Zuordnung über ISIN oder Ticker) und optional CoinGecko. ISINs werden mit Prüfziffer validiert. Stückzahlen dürfen gebrochen sein (Krypto) und werden auf 10 Nachkommastellen gerundet.
+
+### D41 – CoinGecko (optional)
+
+Standardmässig aus (Einstellungen → Vermögen). Abgerufen wird nur auf Knopfdruck, nie automatisch im Hintergrund. Gesendet werden nur die CoinGecko-IDs und die Währung (`/api/v3/simple/price?ids=…&vs_currencies=chf`), ohne Cookies und Referrer. `connect-src` der CSP enthält deshalb `https://api.coingecko.com`. Ein Browsertest prüft, dass ohne Einwilligung keine Anfrage erfolgt und die URL keine Mengen enthält.
+
+### D42 – Vermögensverlauf
+
+Der Verlauf kommt aus den Monats-Snapshots, die seit Phase 1 geschrieben werden. Bei Anlagekonten enthält ein Snapshot den Marktwert zum Monatsende. Es gibt keine Historie der Stückzahlen: Für noch offene vergangene Monate rechnet die App mit dem aktuellen Bestand und dem damaligen Kurs. Abgeschlossene Monate bleiben eingefroren und damit korrekt. Regelmässige Monatsabschlüsse machen den Verlauf also genau.
+
+### D43 – Jahresübersicht
+
+Eigene Seite mit Saldo, Sparquote, bestem und schwächstem Monat, Vermögen am Jahresende und Veränderung, einer Monatstabelle mit Vermögen und Veränderung sowie Ausgaben nach Kategorie (Anteil, Ø pro aktivem Monat). Auf der Übersicht ersetzt eine Vermögenskarte mit Link die frühere Tabelle.

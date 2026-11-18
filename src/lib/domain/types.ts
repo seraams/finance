@@ -58,6 +58,8 @@ export interface Transaction {
   importHash?: string;
   tagIds: Id[];
   attachmentIds: Id[];
+  /** Kauf/Verkauf einer Position: Geldfluss im Anlagekonto (zählt nicht als Einnahme/Ausgabe). */
+  holdingId?: Id;
 }
 
 export interface Split {
@@ -191,8 +193,12 @@ export interface Security {
   ticker?: string;
   name: string;
   currency: string;
-  kind: 'stock' | 'etf' | 'fund' | 'crypto' | 'other';
+  kind: SecurityKind;
+  /** CoinGecko-ID für den optionalen Kursabruf (nur Krypto), z. B. `bitcoin`. */
+  coingeckoId?: string;
 }
+
+export type SecurityKind = 'stock' | 'etf' | 'fund' | 'crypto' | 'other';
 
 export interface Holding {
   id: Id;

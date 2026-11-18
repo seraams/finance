@@ -13,7 +13,7 @@
 | Jemand rät die Passphrase                                                | PBKDF2-SHA-256 mit 600'000 Iterationen macht jeden Versuch teuer. Die App erzwingt nach 5 Fehlversuchen eine wachsende Wartezeit (30 s, 60 s, 120 s … bis 1 h). Diese Sperre schützt nur die Oberfläche; gegen Offline-Angriffe auf die Rohdaten hilft allein eine starke Passphrase. |
 | Manipulierte Daten in IndexedDB                                          | AES-GCM ist authentifiziert: Veränderte Daten lassen sich nicht entschlüsseln.                                                                                                                                                                                                        |
 | Gerät bleibt entsperrt liegen                                            | Auto-Sperre nach Inaktivität (Standard 10 Minuten) und 60 Sekunden nach dem Wechsel in den Hintergrund. Beim Sperren werden Schlüssel und Klartextdaten verworfen.                                                                                                                    |
-| Skripte oder Anfragen von Dritten                                        | Keine CDNs, keine externen Schriften. Eine Content Security Policy (`default-src 'self'`, keine Inline-Skripte, `connect-src 'self'`) verhindert das Nachladen fremden Codes.                                                                                                         |
+| Skripte oder Anfragen von Dritten                                        | Keine CDNs, keine externen Schriften. Eine Content Security Policy (`default-src 'self'`, keine Inline-Skripte, `connect-src` nur `'self'` und die optionale Kurs-API) verhindert das Nachladen fremden Codes.                                                                        |
 
 ## Technische Details
 
@@ -27,6 +27,10 @@
 
 - Der Service Worker (PWA) cacht nur die gebauten App-Dateien. Daten gehen nie in den Cache.
 - Importierte Bankdateien (CSV, camt.053) werden nur im Browser gelesen und nicht gespeichert. Gespeichert werden nur die daraus erzeugten Buchungen (verschlüsselt) und, falls gewünscht, das Importprofil (Spaltenzuordnung, ebenfalls verschlüsselt im Datenbestand).
+
+### Optionaler Kursabruf (CoinGecko)
+
+Standardmässig ausgeschaltet. Erst wenn du ihn in den Einstellungen einschaltest und auf «Krypto-Kurse abrufen» tippst, fragt die App `api.coingecko.com` nach Kursen. Übertragen werden nur die Münz-IDs (z. B. `bitcoin`) und die Währung, nie Mengen, Beträge oder andere Daten, ohne Cookies und ohne Referrer. CoinGecko sieht dabei deine IP-Adresse und welche Münzen du abfragst. Aktien- und ETF-Kurse werden nie online abgerufen.
 
 ### Belegfotos
 

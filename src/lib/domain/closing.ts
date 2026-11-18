@@ -131,7 +131,7 @@ export function uncategorizedInMonth(d: Dataset, month: MonthKey): Transaction[]
   const start = d.settings.monthStartDay;
   return d.transactions
     .filter((tx) => {
-      if (isMirror(tx) || budgetMonthOf(tx.date, start) !== month) return false;
+      if (isMirror(tx) || tx.holdingId || budgetMonthOf(tx.date, start) !== month) return false;
       const covered = (idx.splitsByTx.get(tx.id) ?? []).reduce((a, s) => a + s.amount, 0);
       return covered !== tx.amount;
     })

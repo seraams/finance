@@ -20,7 +20,6 @@
     monthlyFlows,
     savingsRate,
     UNCATEGORIZED,
-    yearOverview,
   } from '../lib/domain/stats';
   import { categoryLabel } from '../lib/domain/entities';
   import { computeHints, type Hint } from '../lib/domain/hints';
@@ -31,6 +30,7 @@
     formatPercent,
     t,
   } from '../lib/i18n/index.svelte';
+  import { netWorth } from '../lib/domain/networth';
   import { session } from '../lib/state/session.svelte';
   import Amount from '../lib/ui/Amount.svelte';
   import Chart from '../lib/ui/Chart.svelte';
@@ -61,8 +61,7 @@
       ? t('category.uncategorized')
       : (data.categories.find((c) => c.id === id)?.name ?? '?');
 
-  let year = $state(new Date().getFullYear());
-  const yearData = $derived(yearOverview(data, year));
+  const nw = $derived(netWorth(data));
 
   function cssVar(name: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -290,48 +289,19 @@
   </section>
 </div>
 
-<section class="card" aria-labelledby="year-h">
+<section class="card" aria-labelledby="nw-h">
   <div class="row between">
-    <h2 id="year-h">{t('dash.yearOverview')}</h2>
-    <div class="row">
-      <button type="button" class="btn small" aria-label="−1" onclick={() => year--}>‹</button>
-      <span class="strong">{year}</span>
-      <button type="button" class="btn small" aria-label="+1" onclick={() => year++}>›</button>
-    </div>
+    <h2 id="nw-h">{t('dash.netWorth')}</h2>
+    <a class="small" href="#/invest">{t('dash.more')}</a>
   </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">{t('common.month')}</th>
-          <th scope="col">{t('dash.income')}</th>
-          <th scope="col">{t('dash.expense')}</th>
-          <th scope="col">{t('dash.net')}</th>
-          <th scope="col">{t('dash.savingsRate')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each yearData.rows as r (r.month)}
-          <tr>
-            <th scope="row">{formatMonth(r.month, 'short')}</th>
-            <td>{formatMoney(r.income)}</td>
-            <td>{formatMoney(r.expense)}</td>
-            <td><Amount value={r.net} /></td>
-            <td>{formatPercent(r.savingsRate)}</td>
-          </tr>
-        {/each}
-      </tbody>
-      <tfoot>
-        <tr>
-          <th scope="row">{t('common.total')}</th>
-          <td>{formatMoney(yearData.total.income)}</td>
-          <td>{formatMoney(yearData.total.expense)}</td>
-          <td><Amount value={yearData.total.net} /></td>
-          <td>{formatPercent(yearData.total.savingsRate)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+  <div class="kpi-value" data-testid="dash-networth"><Amount value={nw.total} color={false} /></div>
+  <p class="small muted">
+    {t('inv.liquid')}: {formatMoney(nw.liquid)} · {t('inv.investments')}: {formatMoney(
+      nw.investments,
+    )}{#if nw.debts !== 0}
+      · {t('inv.debts')}: {formatMoney(nw.debts)}{/if}
+  </p>
+  <a class="btn small" href="#/year">{t('dash.yearOverview')} →</a>
 </section>
 
 <style>
@@ -373,13 +343,5 @@
     background: var(--chart-1);
     border-radius: 0 4px 4px 0;
     min-width: 2px;
-  }
-  tfoot th,
-  tfoot td {
-    font-weight: 600;
-    border-bottom: none;
-  }
-  .strong {
-    font-weight: 600;
   }
 </style>

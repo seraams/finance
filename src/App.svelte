@@ -15,6 +15,8 @@
   import More from './routes/More.svelte';
   import Settings from './routes/Settings.svelte';
   import Shared from './routes/Shared.svelte';
+  import Investments from './routes/Investments.svelte';
+  import Year from './routes/Year.svelte';
   import Setup from './routes/Setup.svelte';
   import TransactionForm from './routes/TransactionForm.svelte';
   import Transactions from './routes/Transactions.svelte';
@@ -40,6 +42,8 @@
     { path: '/budget', key: 'nav.budget', icon: '◐', section: 'budget' },
     { path: '/closing', key: 'nav.closing', icon: '✓', section: 'closing' },
     { path: '/accounts', key: 'nav.accounts', icon: '▭', section: 'accounts' },
+    { path: '/invest', key: 'nav.invest', icon: '▲', section: 'invest' },
+    { path: '/year', key: 'nav.year', icon: '▦', section: 'year' },
     { path: '/shared', key: 'nav.shared', icon: '⇄', section: 'shared' },
     { path: '/recurring', key: 'nav.recurring', icon: '↻', section: 'recurring' },
     { path: '/import', key: 'nav.import', icon: '⇣', section: 'import' },
@@ -58,6 +62,8 @@
       'more',
       'import',
       'shared',
+      'invest',
+      'year',
       'rules',
       'recurring',
       'closing',
@@ -137,6 +143,10 @@
         <Settings />
       {:else if section === 'data'}
         <Data />
+      {:else if section === 'invest'}
+        <Investments />
+      {:else if section === 'year'}
+        <Year />
       {:else if section === 'shared'}
         <Shared />
       {:else if section === 'import'}

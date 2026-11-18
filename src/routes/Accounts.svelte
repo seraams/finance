@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { accountBalances } from '../lib/domain/balances';
   import { todayIso } from '../lib/domain/dates';
   import {
     accountInUse,
@@ -8,6 +7,7 @@
     saveAccount,
   } from '../lib/domain/entities';
   import { debtStatuses } from '../lib/domain/debts';
+  import { accountValues } from '../lib/domain/investments';
   import { formatMoney } from '../lib/domain/money';
   import { ACCOUNT_TYPES, type Account, type AccountType } from '../lib/domain/types';
   import { formatMonth, t, type MessageKey } from '../lib/i18n/index.svelte';
@@ -17,7 +17,7 @@
   import MoneyInput from '../lib/ui/MoneyInput.svelte';
 
   const data = $derived(session.data!);
-  const balances = $derived(accountBalances(data));
+  const balances = $derived(accountValues(data));
   const debts = $derived(debtStatuses(data));
   const active = $derived(data.accounts.filter((a) => !a.archived));
   const archived = $derived(data.accounts.filter((a) => a.archived));

@@ -117,12 +117,14 @@ Der Speicher steckt hinter dem Interface `Repository`. Ein späteres `HttpReposi
 - **Rückerstattungen:** mit der Originalbuchung verknüpft, senken die Ausgabe der Kategorie
 - **Belegfotos:** im Browser verkleinert, Metadaten entfernt, einzeln verschlüsselt
 - **Hinweise:** Monatsabschluss fällig, Budget zu 80 % verbraucht, Abo bald fällig, Puffer unter 2 Monaten, alte Sicherung
+- **Vermögen:** Depot, Säule 3a und Krypto mit Positionen (Stückzahl, Kaufkurs), Kauf/Verkauf, Kurse manuell oder per CSV, optionaler Krypto-Kursabruf (CoinGecko, standardmässig aus), Vermögensverlauf
+- **Jahresübersicht:** Monate mit Vermögensentwicklung, Ausgaben nach Kategorie, bester und schwächster Monat
 - **PWA:** installierbar und vollständig offline nutzbar
 - **Export/Import:** verschlüsselte Sicherung (`.finanz`), Klartext-JSON/CSV nach Bestätigung
 
 ## Stand
 
-Phase 1 (MVP), Phase 2 (Alltag) und Phase 3 (Komfort) sind umgesetzt. Phase 4 (Vermögen) folgt.
+Alle vier Phasen sind umgesetzt: MVP, Alltag, Komfort und Vermögen.
 
 ## Installieren (PWA)
 
