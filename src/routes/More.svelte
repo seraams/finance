@@ -8,6 +8,8 @@
   <ul class="list">
     <li><a class="list-item" href="#/closing">✓ {t('nav.closing')}</a></li>
     <li><a class="list-item" href="#/accounts">▭ {t('nav.accounts')}</a></li>
+    <li><a class="list-item" href="#/invest">▲ {t('nav.invest')}</a></li>
+    <li><a class="list-item" href="#/year">▦ {t('nav.year')}</a></li>
     <li><a class="list-item" href="#/shared">⇄ {t('nav.shared')}</a></li>
     <li><a class="list-item" href="#/recurring">↻ {t('nav.recurring')}</a></li>
     <li><a class="list-item" href="#/import">⇣ {t('nav.import')}</a></li>

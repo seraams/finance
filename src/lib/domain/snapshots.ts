@@ -5,9 +5,21 @@
  * Monatsende (bzw. heute für den laufenden Monat) gespeichert. Snapshots
  * nicht abgeschlossener Monate werden bei jeder Änderung aktualisiert,
  * Snapshots abgeschlossener Monate (MonthClosing) bleiben eingefroren.
+ *
+ * Bei Anlagekonten zählt der Marktwert der Positionen (Kurs zum Stichtag) dazu.
  */
 import { budgetMonthEnd, budgetMonthOf, monthRange } from './dates';
-import type { Dataset, Id, IsoDate, Money, MonthKey, Snapshot, Transaction } from './types';
+import { holdingValue } from './investments';
+import type {
+  Dataset,
+  Holding,
+  Id,
+  IsoDate,
+  Money,
+  MonthKey,
+  Snapshot,
+  Transaction,
+} from './types';
 
 export function updateSnapshots(d: Dataset, today: IsoDate): number {
   const start = d.settings.monthStartDay;
@@ -21,6 +33,13 @@ export function updateSnapshots(d: Dataset, today: IsoDate): number {
     const l = byAccount.get(t.accountId);
     if (l) l.push(t);
     else byAccount.set(t.accountId, [t]);
+  }
+  const holdingsByAccount = new Map<Id, Holding[]>();
+  for (const h of d.holdings) {
+    if (h.quantity === 0) continue;
+    const l = holdingsByAccount.get(h.accountId);
+    if (l) l.push(h);
+    else holdingsByAccount.set(h.accountId, [h]);
   }
   let changed = 0;
   for (const acc of d.accounts) {
@@ -39,14 +58,17 @@ export function updateSnapshots(d: Dataset, today: IsoDate): number {
         bal += acc.openingBalance;
         openingApplied = true;
       }
+      // Anlagekonten: Marktwert der Positionen zum Stichtag dazurechnen
+      const holdings = holdingsByAccount.get(acc.id) ?? [];
+      const value = bal + holdings.reduce((a, h) => a + holdingValue(d, h, end), 0);
       const key = `${acc.id}|${month}`;
       const snap = existing.get(key);
       if (snap) {
-        if (closed.has(month) || snap.balance === bal) continue;
-        snap.balance = bal;
+        if (closed.has(month) || snap.balance === value) continue;
+        snap.balance = value;
         changed++;
       } else {
-        const s: Snapshot = { month, accountId: acc.id, balance: bal };
+        const s: Snapshot = { month, accountId: acc.id, balance: value };
         d.snapshots.push(s);
         existing.set(key, s);
         changed++;
