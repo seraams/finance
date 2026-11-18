@@ -22,7 +22,15 @@
     UNCATEGORIZED,
     yearOverview,
   } from '../lib/domain/stats';
-  import { formatMonth, formatNumber, formatPercent, t } from '../lib/i18n/index.svelte';
+  import { categoryLabel } from '../lib/domain/entities';
+  import { computeHints, type Hint } from '../lib/domain/hints';
+  import {
+    formatDate,
+    formatMonth,
+    formatNumber,
+    formatPercent,
+    t,
+  } from '../lib/i18n/index.svelte';
   import { session } from '../lib/state/session.svelte';
   import Amount from '../lib/ui/Amount.svelte';
   import Chart from '../lib/ui/Chart.svelte';
@@ -107,12 +115,71 @@
     };
   });
 
+  const hints = $derived(computeHints(data, today, data.settings.dismissedHints ?? []));
+
+  function hintText(h: Hint): string {
+    const p = h.params;
+    switch (h.kind) {
+      case 'closingDue':
+        return t('hints.closingDue', { month: formatMonth(h.month ?? '') });
+      case 'budget80':
+      case 'budgetOver':
+        return t(`hints.${h.kind}`, {
+          category: categoryLabel(data, h.categoryId),
+          pct: p.pct ?? 0,
+        });
+      case 'subscriptionDue':
+        return t('hints.subscriptionDue', {
+          name: String(p.name ?? ''),
+          date: formatDate(h.date ?? today),
+          amount: formatMoney(Math.abs(h.amount ?? 0)),
+        });
+      case 'bufferLow':
+        return t('hints.bufferLow', { r: formatNumber(Number(p.r ?? 0), 1) });
+      case 'backupOld':
+        return t('hints.backupOld', { date: formatDate(h.date ?? today) });
+    }
+  }
+
+  function dismiss(key: string) {
+    session.mutate((d) => {
+      const list = d.settings.dismissedHints ?? [];
+      d.settings.dismissedHints = [...list.slice(-199), key];
+    });
+  }
+
   function assign() {
     session.mutate((d) => assignUnassigned(d, today));
   }
 </script>
 
 <h1>{t('dash.title')}</h1>
+
+{#if hints.length}
+  <section class="hints" aria-labelledby="hints-h">
+    <h2 id="hints-h" class="visually-hidden">{t('hints.title')}</h2>
+    <ul>
+      {#each hints as h (h.key)}
+        <li
+          class="notice hint-item"
+          class:warn={h.severity === 'warn'}
+          class:danger={h.severity === 'danger'}
+        >
+          <span aria-hidden="true">{h.severity === 'info' ? 'ℹ' : '⚠'}</span>
+          <a class="grow" href={`#${h.link}`}>{hintText(h)}</a>
+          <button
+            type="button"
+            class="btn ghost small"
+            aria-label={`${t('hints.dismiss')}: ${hintText(h)}`}
+            onclick={() => dismiss(h.key)}
+          >
+            ✕
+          </button>
+        </li>
+      {/each}
+    </ul>
+  </section>
+{/if}
 
 {#if data.accounts.length === 0}
   <div class="notice ok">
@@ -270,6 +337,21 @@
 <style>
   .cards {
     margin-bottom: var(--gap);
+  }
+  .hints ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--gap);
+  }
+  .hint-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    padding: 6px 6px 6px 14px;
+  }
+  .hint-item a {
+    color: inherit;
   }
   .reach {
     margin: 4px 0 8px;

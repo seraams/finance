@@ -13,7 +13,11 @@
     type TransactionInput,
   } from '../lib/domain/transactions';
   import type { Id } from '../lib/domain/types';
-  import { formatMonth, t, type MessageKey } from '../lib/i18n/index.svelte';
+  import { formatDate, formatMonth, t, type MessageKey } from '../lib/i18n/index.svelte';
+  import { attachmentsOf } from '../lib/domain/attachments';
+  import { uuidv7 } from '../lib/domain/ids';
+  import { refundable, refundInput, refundsOf } from '../lib/domain/refunds';
+  import Amount from '../lib/ui/Amount.svelte';
   import { router } from '../lib/router.svelte';
   import { lastUsed, session } from '../lib/state/session.svelte';
   import MoneyInput from '../lib/ui/MoneyInput.svelte';
@@ -60,9 +64,34 @@
   let newTag = $state('');
   let errors = $state<string[]>([]);
   let rowKey = 0;
+  /** ID der Buchung – bei neuen Buchungen schon vorab, damit Belege zugeordnet werden können. */
+  const txId = existing?.id ?? uuidv7();
+  /** Originalbuchung, falls dies eine Rückerstattung ist. */
+  let refundOf = $state<string | undefined>(existing?.refundOfId);
 
   function init() {
     const q = router.route.query;
+    const refundId = q.get('refund');
+    if (!existing && refundId && d.transactions.some((x) => x.id === refundId)) {
+      const input = refundInput(d, refundId, refundable(d, refundId), todayIso());
+      refundOf = refundId;
+      mode = 'expense';
+      amount = input.amount || null;
+      accountId = input.accountId;
+      payee = input.payee ?? '';
+      tagIds = [...(input.tagIds ?? [])];
+      if (input.splits.length === 1) categoryId = input.splits[0]!.categoryId ?? '';
+      else if (input.splits.length > 1) {
+        splitMode = true;
+        rows = input.splits.map((s) => ({
+          key: rowKey++,
+          target: `c:${s.categoryId}`,
+          amount: Math.abs(s.amount),
+          potId: s.potId ?? '',
+        }));
+      }
+      return;
+    }
     if (!existing) {
       const qMode = q.get('mode');
       if (qMode === 'income' || qMode === 'transfer') mode = qMode;
@@ -93,7 +122,7 @@
       }
       return;
     }
-    mode = input.amount < 0 ? 'expense' : 'income';
+    mode = input.amount < 0 || refundOf ? 'expense' : 'income';
     if (splits.length === 1 && splits[0]!.categoryId) {
       categoryId = splits[0]!.categoryId;
       potId = splits[0]!.potId ?? '';
@@ -109,8 +138,60 @@
   }
   init();
 
-  const sign = $derived(mode === 'income' ? 1 : -1);
-  const categoryKind = $derived(mode === 'income' ? 'income' : 'expense');
+  const sign = $derived(mode === 'income' || refundOf ? 1 : -1);
+  const original = $derived(
+    refundOf ? session.data!.transactions.find((x) => x.id === refundOf) : undefined,
+  );
+  const refunds = $derived(existing ? refundsOf(session.data!, existing.id) : []);
+  const canRefund = $derived(!!existing && existing.amount < 0 && mode === 'expense' && !refundOf);
+
+  // ---------- Belege ----------
+  const attachments = $derived(attachmentsOf(session.data!, txId));
+  let thumbs = $state<Record<string, string>>({});
+  let photoBusy = $state(false);
+  let photoError = $state<string | null>(null);
+
+  $effect(() => {
+    const ids = attachments.map((a) => a.id);
+    let cancelled = false;
+    for (const id of ids) {
+      if (untrack(() => thumbs[id])) continue;
+      void session.attachmentUrl(id).then((url) => {
+        if (!url) return;
+        if (cancelled) return URL.revokeObjectURL(url);
+        thumbs[id] = url;
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  $effect(() => () => {
+    for (const url of Object.values(untrack(() => thumbs))) URL.revokeObjectURL(url);
+  });
+
+  async function onPhoto(e: Event & { currentTarget: HTMLInputElement }) {
+    const files = [...(e.currentTarget.files ?? [])];
+    e.currentTarget.value = '';
+    photoBusy = true;
+    photoError = null;
+    try {
+      for (const f of files) await session.addPhoto(txId, f);
+    } catch (err) {
+      photoError = t('att.error', { msg: err instanceof Error ? err.message : String(err) });
+    } finally {
+      photoBusy = false;
+    }
+  }
+
+  async function removePhoto(id: string) {
+    if (!confirm(t('att.remove') + '?')) return;
+    if (thumbs[id]) URL.revokeObjectURL(thumbs[id]);
+    delete thumbs[id];
+    await session.removePhoto(id);
+  }
+  const categoryKind = $derived(mode === 'income' && !refundOf ? 'income' : 'expense');
   const tree = $derived(categoryTree(session.data!, categoryKind));
 
   /** Häufig genutzte Kategorien als Schnellauswahl. */
@@ -202,14 +283,15 @@
       splits = [{ categoryId, amount: total, ...(potId ? { potId } : {}) }];
     }
     return {
-      ...(existing ? { id: existing.id } : {}),
+      id: txId,
+      attachmentIds: attachments.map((a) => a.id),
       accountId: acc,
       date,
       amount: total,
       payee,
       note,
       tagIds,
-      ...(existing?.refundOfId ? { refundOfId: existing.refundOfId } : {}),
+      ...(refundOf ? { refundOfId: refundOf } : {}),
       ...(existing?.recurringId ? { recurringId: existing.recurringId } : {}),
       splits,
     };
@@ -235,12 +317,13 @@
   function remove() {
     if (!existing || !confirm(t('common.confirmDelete'))) return;
     session.mutate((data) => deleteTransaction(data, existing.id));
+    void session.cleanupAttachments();
     router.go('/tx', { replace: true });
   }
 </script>
 
 <div class="head row between">
-  <h1>{existing ? t('tx.edit') : t('tx.new')}</h1>
+  <h1>{refundOf ? t('refund.title') : existing ? t('tx.edit') : t('tx.new')}</h1>
   <button type="button" class="btn ghost" onclick={() => router.back('/tx')}>
     {t('common.cancel')}
   </button>
@@ -254,13 +337,26 @@
   <form class="card" onsubmit={submit} novalidate>
     {#if wasMirror}<p class="notice small">{t('tx.mirrorOf')}</p>{/if}
 
-    <div class="segmented" role="group" aria-label={t('tx.kind')}>
-      {#each ['expense', 'income', 'transfer'] as const as m (m)}
-        <button type="button" aria-pressed={mode === m} onclick={() => setMode(m)}>
-          {t(`tx.${m}`)}
-        </button>
-      {/each}
-    </div>
+    {#if refundOf}
+      <p class="notice ok">
+        ↩ {original
+          ? t('refund.of', {
+              payee: original.payee || '—',
+              date: formatDate(original.date),
+              amount: formatMoney(original.amount),
+            })
+          : t('refund.title')}
+        {#if original}<a href={`#/tx/${original.id}`}>→</a>{/if}
+      </p>
+    {:else}
+      <div class="segmented" role="group" aria-label={t('tx.kind')}>
+        {#each ['expense', 'income', 'transfer'] as const as m (m)}
+          <button type="button" aria-pressed={mode === m} onclick={() => setMode(m)}>
+            {t(`tx.${m}`)}
+          </button>
+        {/each}
+      </div>
+    {/if}
 
     <div class="field">
       <MoneyInput
@@ -472,6 +568,47 @@
       </p>
     {/if}
 
+    <fieldset class="field plain">
+      <legend class="lbl">{t('att.title')}</legend>
+      {#if attachments.length}
+        <ul class="thumbs">
+          {#each attachments as a (a.id)}
+            <li>
+              {#if thumbs[a.id]}
+                <a href={thumbs[a.id]} target="_blank" rel="noopener" aria-label={t('att.open')}>
+                  <img src={thumbs[a.id]} alt={t('att.title')} />
+                </a>
+              {:else}
+                <span class="ph" aria-busy="true">…</span>
+              {/if}
+              <button
+                type="button"
+                class="btn ghost small"
+                aria-label={t('att.remove')}
+                onclick={() => removePhoto(a.id)}
+              >
+                ✕
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      <label class="btn small photo">
+        📷 {t('att.add')}
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          class="visually-hidden"
+          onchange={onPhoto}
+        />
+      </label>
+      {#if photoBusy}<p class="hint" role="status">{t('att.processing')}</p>{/if}
+      {#if photoError}<p class="error" role="alert">{photoError}</p>{/if}
+      <p class="hint">{t('att.hint')}</p>
+    </fieldset>
+
     {#if errors.length}
       <ul class="error" role="alert">
         {#each errors as e (e)}<li>{e}</li>{/each}
@@ -490,6 +627,30 @@
       <p class="hint">{categoryLabel(session.data!, categoryId)}</p>
     {/if}
   </form>
+
+  {#if canRefund || refunds.length}
+    <section class="card" aria-labelledby="ref-h">
+      <h2 id="ref-h">{t('refund.list')}</h2>
+      {#if refunds.length}
+        <ul class="list">
+          {#each refunds as r (r.id)}
+            <li>
+              <a class="list-item" href={`#/tx/${r.id}`}>
+                <span class="grow">{formatDate(r.date)}</span>
+                <Amount value={r.amount} />
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if canRefund && existing}
+        <p class="small muted">
+          {t('refund.refundable', { amount: formatMoney(refundable(session.data!, existing.id)) })}
+        </p>
+        <a class="btn" href={`#/tx/new?refund=${existing.id}`}>↩ {t('refund.create')}</a>
+      {/if}
+    </section>
+  {/if}
 {/if}
 
 <style>
@@ -539,5 +700,38 @@
   }
   .actions {
     margin-top: 8px;
+  }
+  .thumbs {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .thumbs li {
+    position: relative;
+  }
+  .thumbs img,
+  .ph {
+    display: grid;
+    place-items: center;
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .thumbs button {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--surface);
+    min-height: 28px;
+    padding: 0 8px;
+  }
+  .photo {
+    cursor: pointer;
   }
 </style>

@@ -240,6 +240,10 @@
       <dd><Amount value={overview.budgeted} color={false} /></dd>
       <dt>{t('budget.spent')}</dt>
       <dd><Amount value={overview.spent} color={false} /></dd>
+      {#if overview.otherCharges !== 0}
+        <dt>{t('budget.otherCharges')}</dt>
+        <dd><Amount value={overview.otherCharges} color={false} /></dd>
+      {/if}
       <dt>{t('budget.unbudgeted')}</dt>
       <dd><Amount value={overview.unbudgeted} /></dd>
     </dl>

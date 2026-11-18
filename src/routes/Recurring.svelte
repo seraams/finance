@@ -12,6 +12,7 @@
   } from '../lib/domain/recurring';
   import type { Recurring, RecurringTemplate } from '../lib/domain/types';
   import { formatDate, t, type MessageKey } from '../lib/i18n/index.svelte';
+  import { router } from '../lib/router.svelte';
   import { session } from '../lib/state/session.svelte';
   import Amount from '../lib/ui/Amount.svelte';
   import Dialog from '../lib/ui/Dialog.svelte';
@@ -65,6 +66,15 @@
     active = true;
     error = null;
     open = true;
+  }
+
+  // Vorbelegung «Rate planen» für ein Schuldkonto: #/recurring?debt=<id>
+  const debtId = router.route.query.get('debt');
+  if (debtId && session.data!.accounts.some((a) => a.id === debtId)) {
+    openNew();
+    mode = 'transfer';
+    target = `a:${debtId}`;
+    name = session.data!.accounts.find((a) => a.id === debtId)?.name ?? '';
   }
 
   function openEdit(r: Recurring) {

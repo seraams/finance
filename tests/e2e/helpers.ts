@@ -10,6 +10,7 @@ export function collectProblems(page: Page): string[] {
   page.on('pageerror', (e) => problems.push(e.message));
   page.on('request', (r) => {
     const url = new URL(r.url());
+    if (url.protocol === 'blob:' || url.protocol === 'data:') return;
     if (url.hostname !== 'localhost') problems.push(`third-party request: ${r.url()}`);
   });
   return problems;

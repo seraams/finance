@@ -14,6 +14,7 @@
   import Data from './routes/Data.svelte';
   import More from './routes/More.svelte';
   import Settings from './routes/Settings.svelte';
+  import Shared from './routes/Shared.svelte';
   import Setup from './routes/Setup.svelte';
   import TransactionForm from './routes/TransactionForm.svelte';
   import Transactions from './routes/Transactions.svelte';
@@ -39,6 +40,7 @@
     { path: '/budget', key: 'nav.budget', icon: '◐', section: 'budget' },
     { path: '/closing', key: 'nav.closing', icon: '✓', section: 'closing' },
     { path: '/accounts', key: 'nav.accounts', icon: '▭', section: 'accounts' },
+    { path: '/shared', key: 'nav.shared', icon: '⇄', section: 'shared' },
     { path: '/recurring', key: 'nav.recurring', icon: '↻', section: 'recurring' },
     { path: '/import', key: 'nav.import', icon: '⇣', section: 'import' },
     { path: '/rules', key: 'nav.rules', icon: '⚑', section: 'rules' },
@@ -55,6 +57,7 @@
       'data',
       'more',
       'import',
+      'shared',
       'rules',
       'recurring',
       'closing',
@@ -134,12 +137,16 @@
         <Settings />
       {:else if section === 'data'}
         <Data />
+      {:else if section === 'shared'}
+        <Shared />
       {:else if section === 'import'}
         <Import />
       {:else if section === 'rules'}
         <Rules />
       {:else if section === 'recurring'}
-        <Recurring />
+        {#key router.route.query.toString()}
+          <Recurring />
+        {/key}
       {:else if section === 'closing'}
         {#key router.route.query.toString()}
           <Closing />

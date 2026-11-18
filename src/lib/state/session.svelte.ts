@@ -4,7 +4,15 @@
 import { unlockDelayMs, WrongPassphraseError } from '../crypto/crypto';
 import { todayIso } from '../domain/dates';
 import { createEmptyDataset } from '../domain/defaults';
+import {
+  addAttachment,
+  orphanBlobIds,
+  pruneAttachmentMeta,
+  removeAttachment,
+} from '../domain/attachments';
+import { uuidv7 } from '../domain/ids';
 import { materializeDue } from '../domain/recurring';
+import { processImage } from '../ui/image';
 import { updateSnapshots } from '../domain/snapshots';
 import type { Dataset, Id, Language, Theme } from '../domain/types';
 import { i18n } from '../i18n/index.svelte';
@@ -98,6 +106,7 @@ export class Session {
       this.status = 'unlocked';
       this.startAutoLock();
       this.runDueTasks();
+      void this.cleanupAttachments();
       return 'ok';
     } catch (e) {
       if (!(e instanceof WrongPassphraseError)) throw e;
@@ -214,6 +223,42 @@ export class Session {
         this.saveError = e instanceof Error ? e.message : String(e);
       });
     await this.savePromise;
+  }
+
+  // ---------- Belege ----------
+
+  /** Verkleinert, verschlüsselt und speichert ein Foto für eine Buchung. */
+  async addPhoto(transactionId: Id, file: Blob): Promise<void> {
+    const img = await processImage(file);
+    const id = uuidv7();
+    await this.repo.putAttachment(id, img.bytes);
+    // Die Buchung existiert evtl. noch nicht (neue Buchung): Metadaten trotzdem anlegen.
+    this.mutate((d) =>
+      addAttachment(d, { id, transactionId, mime: img.mime, size: img.bytes.byteLength }),
+    );
+  }
+
+  /** Entschlüsselt einen Beleg und gibt eine Blob-URL zurück (Aufrufer gibt sie frei). */
+  async attachmentUrl(id: Id): Promise<string | null> {
+    const meta = this.data?.attachments.find((a) => a.id === id);
+    const bytes = await this.repo.getAttachment(id);
+    if (!bytes) return null;
+    return URL.createObjectURL(new Blob([bytes], { type: meta?.mime ?? 'image/jpeg' }));
+  }
+
+  async removePhoto(id: Id): Promise<void> {
+    this.mutate((d) => removeAttachment(d, id));
+    await this.repo.deleteAttachment(id);
+  }
+
+  /** Entfernt verwaiste Belege (z. B. nach Löschen einer Buchung). */
+  async cleanupAttachments(): Promise<void> {
+    if (!this.data || !this.repo.isUnlocked()) return;
+    const prunedMeta = pruneAttachmentMeta(this.data);
+    const stored = await this.repo.listAttachmentIds();
+    const orphans = orphanBlobIds(this.data, stored);
+    for (const id of orphans) await this.repo.deleteAttachment(id);
+    if (prunedMeta.length) this.scheduleSave();
   }
 
   // ---------- Sicherung ----------

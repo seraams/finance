@@ -112,12 +112,17 @@ Der Speicher steckt hinter dem Interface `Repository`. Ein späteres `HttpReposi
 - **Fixkosten & Abos:** wiederkehrende Buchungen, Abo-Liste mit Jahreskosten und nächster Fälligkeit, automatische Buchung bei Fälligkeit
 - **Monatsabschluss in 7 Schritten:** unkategorisierte Buchungen, Bankabgleich, offene Salden bei Personen, Reste, Selbst-Gehalt, Überlauf, Bericht und Sperre
 - **Dashboard:** Reichweite des Puffers, Restbudget, Ausgaben nach Kategorie, Einnahmen vs. Ausgaben, Sparquote, Jahresübersicht
+- **Geteilte Kosten:** «wer schuldet wem», gleichmässig aufteilen, Ausgleichsbuchung (z. B. per Twint)
+- **Schulden:** Schuldkonten mit Ratenplan (wiederkehrende Umbuchung), Restlaufzeit
+- **Rückerstattungen:** mit der Originalbuchung verknüpft, senken die Ausgabe der Kategorie
+- **Belegfotos:** im Browser verkleinert, Metadaten entfernt, einzeln verschlüsselt
+- **Hinweise:** Monatsabschluss fällig, Budget zu 80 % verbraucht, Abo bald fällig, Puffer unter 2 Monaten, alte Sicherung
 - **PWA:** installierbar und vollständig offline nutzbar
 - **Export/Import:** verschlüsselte Sicherung (`.finanz`), Klartext-JSON/CSV nach Bestätigung
 
 ## Stand
 
-Phase 1 (MVP) und Phase 2 (Alltag) sind umgesetzt. Phase 3 (Komfort) und 4 (Vermögen) folgen.
+Phase 1 (MVP), Phase 2 (Alltag) und Phase 3 (Komfort) sind umgesetzt. Phase 4 (Vermögen) folgt.
 
 ## Installieren (PWA)
 

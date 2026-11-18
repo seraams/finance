@@ -180,6 +180,8 @@ export function deleteTransaction(d: Dataset, txId: Id): void {
   removeMirrors(d, origin.id);
   d.transactions = d.transactions.filter((t) => t.id !== origin.id);
   d.splits = d.splits.filter((s) => s.transactionId !== origin.id);
+  // Beleg-Metadaten entfernen (die Bytes räumt die Sitzung auf)
+  d.attachments = d.attachments.filter((a) => a.transactionId !== origin.id);
   // Verweise von Rückerstattungen lösen
   for (const t of d.transactions) if (t.refundOfId === origin.id) delete t.refundOfId;
 }

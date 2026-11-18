@@ -134,7 +134,11 @@ export function potEffects(d: Dataset, asOf?: IsoDate, idx = indexDataset(d)): P
         const counter = idx.accounts.get(s.counterAccountId);
         const counterBR = counter?.budgetRelevant ?? false;
         if (acc.budgetRelevant === counterBR) continue;
-        const potId = s.potId ?? idx.bufferId;
+        // Raten auf Schuldkonten sind Budgetzeilen (Monatsbudget), alles andere
+        // (z. B. Einzahlung ins Depot) kommt standardmässig aus dem Puffer.
+        const otherSide = acc.budgetRelevant ? counter : acc;
+        const potId =
+          s.potId ?? (otherSide?.type === 'debt' ? idx.monthlyId : undefined) ?? idx.bufferId;
         if (!potId) continue;
         effects.push({
           potId,
