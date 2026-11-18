@@ -158,7 +158,16 @@
           <li>
             <a class="list-item" href={`#/tx/${tx.id}`} data-testid="tx-item">
               <span class="grow">
-                <span class="payee">{tx.payee || describe(tx)}</span>
+                <span class="payee">
+                  {#if tx.refundOfId}<span class="badge">
+                      ↩ {t('refund.badge')}
+                    </span>{/if}{tx.payee || describe(tx)}{#if tx.attachmentIds.length}<span
+                      class="clip"
+                      aria-label={t('att.title')}
+                    >
+                      📎
+                    </span>{/if}
+                </span>
                 <span class="small muted sub">
                   {tx.payee ? describe(tx) + ' · ' : ''}{accounts.get(tx.accountId)?.name ??
                     ''}{#if tx.tagIds.length}
@@ -208,6 +217,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .badge {
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 6px;
+    margin-right: 6px;
+    color: var(--muted);
+    font-weight: 400;
   }
   .sub {
     display: block;

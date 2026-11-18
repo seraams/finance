@@ -242,6 +242,8 @@ export interface Settings {
   priceFetchEnabled: boolean;
   /** Zeitpunkt der letzten verschlüsselten Sicherung (ISO). */
   lastBackupAt?: string;
+  /** Ausgeblendete Hinweise (Schlüssel je Zeitraum). */
+  dismissedHints?: string[];
 }
 
 export interface Dataset {
@@ -267,11 +269,16 @@ export interface Dataset {
   settings: Settings;
 }
 
-/** Konten-Typen, die standardmässig nicht budgetrelevant sind (nur Vermögen). */
+/**
+ * Konten-Typen, die standardmässig nicht budgetrelevant sind (nur Vermögen).
+ * Schulden zählen ebenfalls nicht, damit eine Schuld den Puffer nicht ins
+ * Minus drückt; Raten werden stattdessen aus dem Monatsbudget bezahlt.
+ */
 export const NON_BUDGET_ACCOUNT_TYPES: readonly AccountType[] = [
   'brokerage',
   'pension3a',
   'crypto',
+  'debt',
 ];
 
 export const ACCOUNT_TYPES: readonly AccountType[] = [

@@ -274,6 +274,26 @@ export function createSeedDataset(lang: Language = 'de', today = todayIso()): Da
     `${addMonths(currentMonth, 4)}-05`,
     true,
   );
+  const loan = saveAccount(d, {
+    name: lang === 'de' ? 'Studienkredit' : 'Student loan',
+    type: 'debt',
+    openingBalance: -300000,
+    openingDate,
+  }).id;
+  saveRecurring(d, {
+    name: lang === 'de' ? 'Rate Studienkredit' : 'Student loan rate',
+    template: {
+      accountId: priv,
+      amount: -25000,
+      payee: 'Rate',
+      note: '',
+      tagIds: [],
+      splits: [{ counterAccountId: loan, amount: -25000, note: '' }],
+    },
+    rrule: 'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=28',
+    nextDate: `${currentMonth}-28` > today ? `${currentMonth}-28` : nextMonth.slice(0, 8) + '28',
+    isSubscription: false,
+  });
   saveRule(d, { pattern: 'migros', categoryId: byName('Lebensmittel', 'Groceries') });
   saveRule(d, { pattern: 'coop', categoryId: byName('Lebensmittel', 'Groceries') });
   saveRule(d, { pattern: 'sbb', categoryId: byName('ÖV', 'Public transport') });

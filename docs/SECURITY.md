@@ -28,6 +28,10 @@
 - Der Service Worker (PWA) cacht nur die gebauten App-Dateien. Daten gehen nie in den Cache.
 - Importierte Bankdateien (CSV, camt.053) werden nur im Browser gelesen und nicht gespeichert. Gespeichert werden nur die daraus erzeugten Buchungen (verschlüsselt) und, falls gewünscht, das Importprofil (Spaltenzuordnung, ebenfalls verschlüsselt im Datenbestand).
 
+### Belegfotos
+
+Fotos werden vor dem Speichern im Browser verkleinert und neu kodiert. Dabei gehen Metadaten wie GPS-Position, Kameramodell und Aufnahmezeit verloren. Jedes Foto wird einzeln mit dem Tresor-Schlüssel verschlüsselt. Zum Anzeigen wird es entschlüsselt und nur als kurzlebige `blob:`-URL im Arbeitsspeicher gehalten. Belege sind in der `.finanz`-Sicherung enthalten, nicht aber im Klartext-Export.
+
 ### Was unverschlüsselt gespeichert wird
 
 In IndexedDB (Store `meta`) liegen ohne Verschlüsselung:

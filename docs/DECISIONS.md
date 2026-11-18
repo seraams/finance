@@ -28,7 +28,7 @@ Eine Umbuchung besteht aus einer **Ursprungsbuchung** (`transferId === id`) und 
 
 ### D4 – Standard-Budgetrelevanz
 
-Nur Depot, Säule 3a und Krypto sind standardmässig nicht budgetrelevant (wie im Auftrag). Person und Schuld sind budgetrelevant; das lässt sich pro Konto ändern.
+Depot, Säule 3a und Krypto sind standardmässig nicht budgetrelevant (wie im Auftrag). Personenkonten sind budgetrelevant. _Geändert in Phase 3 (D32):_ Auch Schuldkonten sind standardmässig nicht budgetrelevant. Die Einstellung lässt sich pro Konto ändern.
 
 ### D5 – Rundung des S-Vorschlags
 
@@ -139,3 +139,33 @@ Die Differenz wird als unkategorisierte Buchung am letzten Tag des Monats erfass
 ### D31 – Speichern vor dem Download der Sicherung
 
 Der Vermerk «letzte Sicherung» wird gespeichert, bevor die Datei erzeugt wird. Sonst ging er verloren, wenn die Seite direkt nach dem Download geschlossen wurde, und der Einrichtungsschritt erschien erneut.
+
+## Phase 3
+
+### D32 – Schulden nicht budgetrelevant, Raten aus dem Monatsbudget
+
+Wäre ein Schuldkonto budgetrelevant, würde eine bestehende Schuld (z. B. −3'000 CHF Studienkredit) den Puffer dauerhaft ins Minus drücken und die Reichweite wäre immer «rot». Deshalb sind Schuldkonten standardmässig **nicht** budgetrelevant. Eine Rate ist eine wiederkehrende Umbuchung vom Privatkonto auf das Schuldkonto. Weil sie die Grenze budgetrelevant → nicht budgetrelevant überschreitet, belastet sie einen Topf, bei Schuldkonten standardmässig das **Monatsbudget**. Damit ist die Rate eine Budgetzeile innerhalb von S, wie im Puffer-Modell verlangt. Andere Umbuchungen über die Grenze (z. B. ins Depot) kommen weiterhin aus dem Puffer. Die letzte Rate wird auf den offenen Betrag gekürzt, danach endet der Ratenplan automatisch. Zinsen werden nicht berechnet; sie lassen sich als Ausgabe erfassen.
+
+### D33 – Geteilte Kosten
+
+Personen sind Konten. «Wer schuldet wem» ist immer aus meiner Sicht: Saldo > 0 heisst, die Person schuldet mir etwas, Saldo < 0, ich schulde ihr. Bei einer geteilten Ausgabe wird der Betrag exakt auf Rappen aufgeteilt (gleichmässig oder nach Gewichten), Rest-Rappen gehen an die ersten Anteile. Hat eine Person bezahlt, entsteht nur eine Buchung auf ihrem Konto mit meinem Anteil als Ausgabe; die Anteile Dritter betreffen mich nicht. Der Ausgleich ist eine Umbuchung zwischen Personenkonto und einem eigenen Konto (z. B. Twint) und zählt nie als Einkommen.
+
+### D34 – Rückerstattungen
+
+Eine Rückerstattung ist eine positive Buchung auf **dieselben Ausgabe-Kategorien** wie das Original, verknüpft über `refundOfId`. Ist das Original auf mehrere Kategorien aufgeteilt, wird die Rückerstattung im selben Verhältnis aufgeteilt. Dadurch sinkt die Ausgabe der Kategorie in Statistik und Budget, statt als Einnahme zu erscheinen. Wird das Original gelöscht, bleibt die Rückerstattung bestehen, nur die Verknüpfung entfällt. Erstattbar ist höchstens der eigene Ausgabe-Anteil des Originals (bei geteilten Kosten also nicht die Anteile der anderen) abzüglich bereits erfasster Rückerstattungen.
+
+### D35 – Belege
+
+Fotos werden im Browser per Canvas auf max. 1600 px (längste Kante) verkleinert und als WebP kodiert, als JPEG, wenn der Browser kein WebP kodieren kann (Safari). Das Neu-Kodieren entfernt EXIF-Metadaten wie GPS-Koordinaten. Jeder Beleg wird einzeln mit AES-GCM verschlüsselt und separat in IndexedDB gespeichert; im Datenbestand stehen nur die Metadaten. Angezeigt werden Belege über kurzlebige `blob:`-URLs (CSP `img-src blob:`). Verwaiste Belege (gelöschte Buchung, abgebrochene Erfassung) werden beim Entsperren aufgeräumt.
+
+### D36 – Hinweise
+
+Es gibt keinen Server für Push-Nachrichten, deshalb zeigt die Übersicht Hinweise an. Sie werden bei jeder Anzeige neu berechnet:
+
+- Monatsabschluss fällig (ältester offener Monat)
+- Budget einer Kategorie zu ≥ 80 % verbraucht bzw. überzogen (nicht bei genau aufgebrauchtem Budget, z. B. Miete)
+- Abo in den nächsten 7 Tagen fällig
+- Puffer reicht weniger als 2 Monate
+- letzte Sicherung älter als 30 Tage (zusätzlich zum Auftrag)
+
+Ausgeblendete Hinweise werden mit einem Schlüssel pro Zeitraum gespeichert (z. B. Kategorie + Monat). Im nächsten Monat erscheint ein Hinweis darum wieder. Gespeichert werden höchstens die letzten 200 Schlüssel.

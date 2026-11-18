@@ -5,6 +5,7 @@
  * BYMONTHDAY=d (Ankertag für Monats-/Jahresregeln; zu grosse Tage werden auf
  * das Monatsende gekürzt, z. B. 31. → 28./29. Februar).
  */
+import { accountBalances } from './balances';
 import { addDays, isIsoDate } from './dates';
 import { uuidv7 } from './ids';
 import { saveTransaction, validateTransaction } from './transactions';
@@ -150,7 +151,14 @@ export function materializeDue(d: Dataset, today: IsoDate): number {
       (!rec.endDate || rec.nextDate <= rec.endDate) &&
       guard++ < 400
     ) {
-      const input = { ...rec.template, date: rec.nextDate, recurringId: rec.id };
+      let input = { ...rec.template, date: rec.nextDate, recurringId: rec.id };
+      // Rate auf ein Schuldkonto: höchstens den offenen Betrag, danach Plan beenden.
+      const capped = capDebtRate(d, input);
+      if (capped === null) {
+        rec.active = false;
+        break;
+      }
+      input = capped;
       if (validateTransaction(d, input).length) {
         rec.active = false;
         break;
@@ -166,6 +174,23 @@ export function materializeDue(d: Dataset, today: IsoDate): number {
     if (rec.endDate && rec.nextDate > rec.endDate) rec.active = false;
   }
   return n;
+}
+
+type DueInput = RecurringTemplate & { date: IsoDate; recurringId: Id };
+
+/**
+ * Begrenzt eine Ratenzahlung (Umbuchung auf ein Schuldkonto) auf den offenen
+ * Betrag. Gibt `null` zurück, wenn die Schuld getilgt ist.
+ */
+export function capDebtRate(d: Dataset, input: DueInput): DueInput | null {
+  if (input.splits.length !== 1) return input;
+  const s = input.splits[0]!;
+  const debt = s.counterAccountId ? d.accounts.find((a) => a.id === s.counterAccountId) : undefined;
+  if (!debt || debt.type !== 'debt' || input.amount >= 0) return input;
+  const outstanding = Math.max(0, -(accountBalances(d).get(debt.id) ?? 0));
+  if (outstanding === 0) return null;
+  if (-input.amount <= outstanding) return input;
+  return { ...input, amount: -outstanding, splits: [{ ...s, amount: -outstanding }] };
 }
 
 /** Termine, die in den nächsten `days` Tagen fällig werden. */
