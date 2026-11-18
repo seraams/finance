@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { todayIso } from '../lib/domain/dates';
+  import { isDateInClosedMonth } from '../lib/domain/closing';
+  import { budgetMonthOf, todayIso } from '../lib/domain/dates';
   import { categoryLabel, categoryTree, saveTag } from '../lib/domain/entities';
   import { formatMoney } from '../lib/domain/money';
   import {
@@ -12,7 +13,7 @@
     type TransactionInput,
   } from '../lib/domain/transactions';
   import type { Id } from '../lib/domain/types';
-  import { t, type MessageKey } from '../lib/i18n/index.svelte';
+  import { formatMonth, t, type MessageKey } from '../lib/i18n/index.svelte';
   import { router } from '../lib/router.svelte';
   import { lastUsed, session } from '../lib/state/session.svelte';
   import MoneyInput from '../lib/ui/MoneyInput.svelte';
@@ -462,6 +463,14 @@
         </span>
       </div>
     </fieldset>
+
+    {#if isDateInClosedMonth(session.data!, date) || (existing && isDateInClosedMonth(session.data!, existing.date))}
+      <p class="notice warn" role="note">
+        ⚠ {t('close.closedWarn', {
+          month: formatMonth(budgetMonthOf(date, session.data!.settings.monthStartDay)),
+        })}
+      </p>
+    {/if}
 
     {#if errors.length}
       <ul class="error" role="alert">

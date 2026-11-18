@@ -23,6 +23,11 @@
 - **Passphrase ändern:** neues Salt, neuer Schlüssel, alles wird neu verschlüsselt und in einer Transaktion geschrieben.
 - **Verwendet wird ausschliesslich die Web Crypto API**, keine eigene Kryptografie.
 
+### Service Worker und Bankdateien
+
+- Der Service Worker (PWA) cacht nur die gebauten App-Dateien. Daten gehen nie in den Cache.
+- Importierte Bankdateien (CSV, camt.053) werden nur im Browser gelesen und nicht gespeichert. Gespeichert werden nur die daraus erzeugten Buchungen (verschlüsselt) und, falls gewünscht, das Importprofil (Spaltenzuordnung, ebenfalls verschlüsselt im Datenbestand).
+
 ### Was unverschlüsselt gespeichert wird
 
 In IndexedDB (Store `meta`) liegen ohne Verschlüsselung:

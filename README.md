@@ -103,6 +103,26 @@ docs/             SECURITY.md, DECISIONS.md
 
 Der Speicher steckt hinter dem Interface `Repository`. Ein späteres `HttpRepository` (z. B. für ein eigenes Backend auf einem Raspberry Pi) lässt sich einsetzen, ohne die UI anzufassen.
 
+## Funktionen
+
+- **Buchungen:** Schnelleingabe am Handy, Aufteilen auf mehrere Kategorien, Umbuchungen, geteilte Kosten über Personenkonten, Suche und Filter
+- **Puffer & Budget:** Selbst-Gehalt mit Anlaufphase, Monatsbudget pro Kategorie, Sparziele, Rücklagen mit automatischem Monatsbeitrag, Überlauf-Verteilung
+- **Bank-Import:** CSV mit frei konfigurierbarer Spaltenzuordnung (Profile speicherbar) und camt.053 (ISO 20022), Vorschau, Duplikaterkennung
+- **Auto-Regeln:** «Text enthält … → Kategorie», Vorschläge aus deinen bisherigen Zuordnungen
+- **Fixkosten & Abos:** wiederkehrende Buchungen, Abo-Liste mit Jahreskosten und nächster Fälligkeit, automatische Buchung bei Fälligkeit
+- **Monatsabschluss in 7 Schritten:** unkategorisierte Buchungen, Bankabgleich, offene Salden bei Personen, Reste, Selbst-Gehalt, Überlauf, Bericht und Sperre
+- **Dashboard:** Reichweite des Puffers, Restbudget, Ausgaben nach Kategorie, Einnahmen vs. Ausgaben, Sparquote, Jahresübersicht
+- **PWA:** installierbar und vollständig offline nutzbar
+- **Export/Import:** verschlüsselte Sicherung (`.finanz`), Klartext-JSON/CSV nach Bestätigung
+
 ## Stand
 
-Phase 1 (MVP) ist umgesetzt. Phase 2 bis 4 (Bank-Import, Regeln, Abos, Monatsabschluss, PWA, geteilte Kosten, Belege, Vermögen) folgen.
+Phase 1 (MVP) und Phase 2 (Alltag) sind umgesetzt. Phase 3 (Komfort) und 4 (Vermögen) folgen.
+
+## Installieren (PWA)
+
+- **Android/Chrome:** Menü → «App installieren».
+- **iPhone/Safari:** Teilen → «Zum Home-Bildschirm».
+- **Desktop/Chrome oder Edge:** Installieren-Symbol in der Adressleiste.
+
+Die Daten liegen pro Browser bzw. installierter App getrennt. Zum Umziehen auf ein anderes Gerät: Sicherung herunterladen und dort «Aus Sicherung wiederherstellen».
