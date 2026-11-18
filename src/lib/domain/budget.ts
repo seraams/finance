@@ -1,7 +1,14 @@
 /**
  * Monatsbudget pro Kategorie, Selbst-Gehalt-Auszahlung.
  */
-import { bufferBalance, findPot, indexDataset, isMirror, potBalances } from './balances';
+import {
+  bufferBalance,
+  findPot,
+  indexDataset,
+  isMirror,
+  potBalances,
+  potEffects,
+} from './balances';
 import { salaryPayout, type SalaryPayout } from './buffer';
 import { budgetMonthOf, monthDiff, addMonths } from './dates';
 import { uuidv7 } from './ids';
@@ -163,6 +170,8 @@ export interface MonthOverview {
   monthlyPot: Money;
   /** Monatsbudget-Topf minus Summe der positiven Kategorie-Reste. */
   unbudgeted: Money;
+  /** Andere Belastungen des Monatsbudgets in diesem Monat (Raten, Rücklagen), positiv. */
+  otherCharges: Money;
 }
 
 export function monthOverview(d: Dataset, month: MonthKey, asOf?: IsoDate): MonthOverview {
@@ -177,7 +186,16 @@ export function monthOverview(d: Dataset, month: MonthKey, asOf?: IsoDate): Mont
   }
   const monthlyId = findPot(d, 'monthly')?.id;
   const monthlyPot = monthlyId ? (potBalances(d, asOf).get(monthlyId) ?? 0) : 0;
+  let otherCharges = 0;
+  if (monthlyId) {
+    for (const e of potEffects(d, asOf)) {
+      if (e.potId !== monthlyId || budgetMonthOf(e.date, d.settings.monthStartDay) !== month)
+        continue;
+      if (e.reason === 'transfer' || e.reason === 'reserve') otherCharges -= e.amount;
+    }
+  }
   return {
+    otherCharges,
     month,
     salaryPaid: salaryPaidInMonth(d, month),
     budgeted,

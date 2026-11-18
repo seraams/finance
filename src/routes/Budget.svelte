@@ -9,6 +9,12 @@
     previewSalary,
     setBudget,
   } from '../lib/domain/budget';
+  import {
+    distributeOverflowToGoals,
+    payReserves,
+    previewOverflow,
+    reserveSchedule,
+  } from '../lib/domain/closing';
   import { addMonths, budgetMonthOf, budgetMonthStart, todayIso } from '../lib/domain/dates';
   import { categoryTree, deletePot, savePot } from '../lib/domain/entities';
   import { uuidv7 } from '../lib/domain/ids';
@@ -37,6 +43,11 @@
   function pay() {
     session.mutate((d) => paySalary(d, payDate));
   }
+
+  const reserves = $derived(reserveSchedule(data, month));
+  const reservesDue = $derived(reserves.reduce((a, r) => a + r.due, 0));
+  const overflowShares = $derived(previewOverflow(data, payDate));
+  const overflowTotal = $derived([...overflowShares.values()].reduce((a, v) => a + v, 0));
 
   // ---------- Budget bearbeiten ----------
   let budgetOpen = $state(false);
@@ -229,6 +240,10 @@
       <dd><Amount value={overview.budgeted} color={false} /></dd>
       <dt>{t('budget.spent')}</dt>
       <dd><Amount value={overview.spent} color={false} /></dd>
+      {#if overview.otherCharges !== 0}
+        <dt>{t('budget.otherCharges')}</dt>
+        <dd><Amount value={overview.otherCharges} color={false} /></dd>
+      {/if}
       <dt>{t('budget.unbudgeted')}</dt>
       <dd><Amount value={overview.unbudgeted} /></dd>
     </dl>
@@ -283,6 +298,49 @@
     {/each}
   </ul>
 </section>
+
+{#if reserves.length || overflowTotal > 0}
+  <section class="card" aria-labelledby="res-h">
+    <h2 id="res-h">{t('reserve.title')}</h2>
+    <ul class="small reslist">
+      {#each reserves as r (r.potId)}
+        <li class:warn-text={r.overdue}>
+          {r.overdue
+            ? t('reserve.overdue', { name: r.name })
+            : t('reserve.line', {
+                name: r.name,
+                amount: formatMoney(r.contribution),
+                n: r.monthsLeft,
+              })}
+        </li>
+      {/each}
+    </ul>
+    <div class="row">
+      {#if reserves.length}
+        {#if reservesDue > 0}
+          <button
+            type="button"
+            class="btn"
+            onclick={() => session.mutate((d) => payReserves(d, month, payDate))}
+          >
+            {t('reserve.pay', { amount: formatMoney(reservesDue) })}
+          </button>
+        {:else}
+          <span class="small muted">✓ {t('reserve.paid')}</span>
+        {/if}
+      {/if}
+      {#if overflowTotal > 0}
+        <button
+          type="button"
+          class="btn"
+          onclick={() => session.mutate((d) => distributeOverflowToGoals(d, payDate))}
+        >
+          {t('overflow.do', { amount: formatMoney(overflowTotal) })}
+        </button>
+      {/if}
+    </div>
+  </section>
+{/if}
 
 <section class="card" aria-labelledby="pots-h">
   <div class="row between">
@@ -449,6 +507,12 @@
   }
   .child {
     padding-left: 20px;
+  }
+  .reslist {
+    padding-left: 18px;
+  }
+  .warn-text {
+    color: var(--warn-text);
   }
   .strong {
     font-weight: 600;

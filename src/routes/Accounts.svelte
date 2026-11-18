@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { accountBalances } from '../lib/domain/balances';
   import { todayIso } from '../lib/domain/dates';
   import {
     accountInUse,
@@ -7,15 +6,19 @@
     deleteAccount,
     saveAccount,
   } from '../lib/domain/entities';
+  import { debtStatuses } from '../lib/domain/debts';
+  import { accountValues } from '../lib/domain/investments';
+  import { formatMoney } from '../lib/domain/money';
   import { ACCOUNT_TYPES, type Account, type AccountType } from '../lib/domain/types';
-  import { t, type MessageKey } from '../lib/i18n/index.svelte';
+  import { formatMonth, t, type MessageKey } from '../lib/i18n/index.svelte';
   import { session } from '../lib/state/session.svelte';
   import Amount from '../lib/ui/Amount.svelte';
   import Dialog from '../lib/ui/Dialog.svelte';
   import MoneyInput from '../lib/ui/MoneyInput.svelte';
 
   const data = $derived(session.data!);
-  const balances = $derived(accountBalances(data));
+  const balances = $derived(accountValues(data));
+  const debts = $derived(debtStatuses(data));
   const active = $derived(data.accounts.filter((a) => !a.archived));
   const archived = $derived(data.accounts.filter((a) => a.archived));
   const budgetTotal = $derived(
@@ -146,6 +149,35 @@
       </div>
     {/if}
   {/each}
+
+  {#if debts.length}
+    <h2 class="sec">{t('debt.title')}</h2>
+    <div class="card">
+      <ul class="list">
+        {#each debts as ds (ds.accountId)}
+          <li class="debt">
+            <div class="row between">
+              <strong>{ds.name}</strong>
+              <span>{t('debt.outstanding')}: <Amount value={ds.outstanding} color={false} /></span>
+            </div>
+            <div class="row between small">
+              {#if ds.monthsLeft !== null}
+                <span class="muted">
+                  {t('debt.rate')}: {formatMoney(ds.monthlyRate)} · {t('debt.months', {
+                    n: ds.monthsLeft,
+                    month: formatMonth(ds.payoffMonth ?? ''),
+                  })}
+                </span>
+              {:else}
+                <span class="muted">{t('debt.noPlan')}</span>
+              {/if}
+              <a class="btn small" href={`#/recurring?debt=${ds.accountId}`}>{t('debt.plan')}</a>
+            </div>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 {/if}
 
 <Dialog bind:open title={editing ? t('account.edit') : t('account.new')}>
@@ -218,6 +250,9 @@
   .nm {
     display: block;
     font-weight: 500;
+  }
+  .debt {
+    padding: 10px 0;
   }
   .sec {
     margin-top: 16px;

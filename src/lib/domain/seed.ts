@@ -6,6 +6,9 @@ import { paySalary, setBudget } from './budget';
 import { addMonths, budgetMonthOf, budgetMonthStart, todayIso } from './dates';
 import { createEmptyDataset } from './defaults';
 import { saveAccount, savePot, saveTag } from './entities';
+import { saveSecurity, setHolding, setPrice } from './investments';
+import { saveRecurring } from './recurring';
+import { saveRule } from './rules';
 import { saveTransaction } from './transactions';
 import type { Dataset, Id, Language } from './types';
 
@@ -67,7 +70,18 @@ export function createSeedDataset(lang: Language = 'de', today = todayIso()): Da
     openingBalance: 1200000,
     openingDate,
   }).id;
-  saveAccount(d, { name: 'Säule 3a', type: 'pension3a', openingBalance: 950000, openingDate });
+  const p3a = saveAccount(d, {
+    name: 'Säule 3a',
+    type: 'pension3a',
+    openingBalance: 0,
+    openingDate,
+  }).id;
+  const cryptoAcc = saveAccount(d, {
+    name: 'Krypto-Wallet',
+    type: 'crypto',
+    openingBalance: 0,
+    openingDate,
+  }).id;
 
   const travel = saveTag(d, lang === 'de' ? 'Ferien' : 'Holiday');
   savePot(d, {
@@ -212,5 +226,113 @@ export function createSeedDataset(lang: Language = 'de', today = todayIso()): Da
     const m = addMonths(start, i);
     for (const [de, en, amt] of budgetPlan) setBudget(d, m, byName(de, en), amt);
   }
+  const nextMonth = budgetMonthStart(addMonths(currentMonth, 1));
+  const rec = (
+    name: string,
+    catDe: string,
+    catEn: string,
+    amount: number,
+    rrule: string,
+    next: string,
+    sub: boolean,
+  ) =>
+    saveRecurring(d, {
+      name,
+      template: {
+        accountId: priv,
+        amount: -amount,
+        payee: name,
+        note: '',
+        tagIds: [],
+        splits: [{ categoryId: byName(catDe, catEn), amount: -amount, note: '' }],
+      },
+      rrule,
+      nextDate: next,
+      isSubscription: sub,
+    });
+  rec(
+    'Wohngenossenschaft',
+    'Miete',
+    'Rent',
+    95000,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=2',
+    nextMonth.slice(0, 8) + '02',
+    false,
+  );
+  rec(
+    'Krankenkasse Muster',
+    'Krankenkasse',
+    'Health insurance',
+    31500,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=2',
+    nextMonth.slice(0, 8) + '02',
+    false,
+  );
+  rec(
+    'Streaming Erfunden',
+    'Abos',
+    'Subscriptions',
+    1290,
+    'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=20',
+    `${currentMonth}-20` > today ? `${currentMonth}-20` : nextMonth.slice(0, 8) + '20',
+    true,
+  );
+  rec(
+    'Cloudspeicher',
+    'Abos',
+    'Subscriptions',
+    2900,
+    'FREQ=YEARLY;INTERVAL=1;BYMONTHDAY=5',
+    `${addMonths(currentMonth, 4)}-05`,
+    true,
+  );
+  const loan = saveAccount(d, {
+    name: lang === 'de' ? 'Studienkredit' : 'Student loan',
+    type: 'debt',
+    openingBalance: -300000,
+    openingDate,
+  }).id;
+  saveRecurring(d, {
+    name: lang === 'de' ? 'Rate Studienkredit' : 'Student loan rate',
+    template: {
+      accountId: priv,
+      amount: -25000,
+      payee: 'Rate',
+      note: '',
+      tagIds: [],
+      splits: [{ counterAccountId: loan, amount: -25000, note: '' }],
+    },
+    rrule: 'FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY=28',
+    nextDate: `${currentMonth}-28` > today ? `${currentMonth}-28` : nextMonth.slice(0, 8) + '28',
+    isSubscription: false,
+  });
+  // Anlagen (erfundene Kurse)
+  const world = saveSecurity(d, { name: 'Welt-ETF (Demo)', kind: 'etf', ticker: 'WELT' });
+  const ch = saveSecurity(d, { name: 'Schweiz-ETF (Demo)', kind: 'etf', ticker: 'SCHW' });
+  const fund3a = saveSecurity(d, { name: '3a-Fonds (Demo)', kind: 'fund', ticker: 'VORS' });
+  const btc = saveSecurity(d, { name: 'Bitcoin', kind: 'crypto', coingeckoId: 'bitcoin' });
+  setHolding(d, depot, world.id, 80, 9000);
+  setHolding(d, depot, ch.id, 40, 11000);
+  setHolding(d, p3a, fund3a.id, 55, 15500);
+  setHolding(d, cryptoAcc, btc.id, 0.05, 5500000);
+  let w = 9000,
+    c = 11000,
+    f = 15500,
+    b = 5500000;
+  for (let i = 0; i <= 13; i++) {
+    const m = addMonths(start, i);
+    const dt = `${m}-15` <= today ? `${m}-15` : today;
+    w = Math.round(w * (1 + (rand() - 0.42) * 0.06));
+    c = Math.round(c * (1 + (rand() - 0.45) * 0.04));
+    f = Math.round(f * (1 + (rand() - 0.4) * 0.03));
+    b = Math.round(b * (1 + (rand() - 0.45) * 0.2));
+    setPrice(d, world.id, dt, w);
+    setPrice(d, ch.id, dt, c);
+    setPrice(d, fund3a.id, dt, f);
+    setPrice(d, btc.id, dt, b);
+  }
+  saveRule(d, { pattern: 'migros', categoryId: byName('Lebensmittel', 'Groceries') });
+  saveRule(d, { pattern: 'coop', categoryId: byName('Lebensmittel', 'Groceries') });
+  saveRule(d, { pattern: 'sbb', categoryId: byName('ÖV', 'Public transport') });
   return d;
 }

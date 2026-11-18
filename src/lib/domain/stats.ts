@@ -30,7 +30,8 @@ function flowEntries(d: Dataset): FlowEntry[] {
   const start = d.settings.monthStartDay;
   const out: FlowEntry[] = [];
   for (const tx of d.transactions) {
-    if (isMirror(tx)) continue;
+    // Umbuchungs-Spiegel und Wertpapier-Käufe/-Verkäufe sind weder Einnahme noch Ausgabe.
+    if (isMirror(tx) || tx.holdingId) continue;
     const month = budgetMonthOf(tx.date, start);
     let covered = 0;
     for (const s of idx.splitsByTx.get(tx.id) ?? []) {

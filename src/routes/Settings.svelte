@@ -166,6 +166,21 @@
   </div>
 </section>
 
+<section class="card" aria-labelledby="net-h">
+  <h2 id="net-h">{t('nav.invest')}</h2>
+  <label class="check">
+    <input
+      type="checkbox"
+      checked={s.priceFetchEnabled}
+      onchange={(e) => {
+        const on = e.currentTarget.checked;
+        session.mutate((d) => (d.settings.priceFetchEnabled = on));
+      }}
+    /><span>{t('settings.priceFetch')}</span>
+  </label>
+  <p class="hint">{t('settings.priceFetchHint')}</p>
+</section>
+
 <section class="card" aria-labelledby="sec-h">
   <h2 id="sec-h">{t('settings.security')}</h2>
   <div class="field">

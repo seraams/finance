@@ -28,7 +28,7 @@ Eine Umbuchung besteht aus einer **Ursprungsbuchung** (`transferId === id`) und 
 
 ### D4 – Standard-Budgetrelevanz
 
-Nur Depot, Säule 3a und Krypto sind standardmässig nicht budgetrelevant (wie im Auftrag). Person und Schuld sind budgetrelevant; das lässt sich pro Konto ändern.
+Depot, Säule 3a und Krypto sind standardmässig nicht budgetrelevant (wie im Auftrag). Personenkonten sind budgetrelevant. _Geändert in Phase 3 (D32):_ Auch Schuldkonten sind standardmässig nicht budgetrelevant. Die Einstellung lässt sich pro Konto ändern.
 
 ### D5 – Rundung des S-Vorschlags
 
@@ -89,3 +89,113 @@ Mindestens 10 Zeichen; eine grobe Stärkeanzeige ohne externe Bibliothek.
 ### D19 – Bekannte Audit-Meldung
 
 `npm audit` meldet eine ReDoS-Lücke in `picomatch` (über `svelte-check`, `typescript-eslint`). Betroffen sind nur Entwicklungswerkzeuge mit Glob-Mustern aus dem Repo selbst, nicht die ausgelieferte App.
+
+## Phase 2
+
+### D20 – CSV-Profile
+
+Ein Importprofil speichert Trennzeichen, Kopfzeile, zu überspringende Vorspann-Zeilen, Datumsformat, Vorzeichenumkehr und die Spaltenzuordnung (Spaltenname bzw. Spaltennummer ohne Kopfzeile). Beträge kommen entweder aus einer Spalte mit Vorzeichen oder aus getrennten Spalten «Belastung/Gutschrift». Ohne Profil schlägt die App Trennzeichen, Kopfzeile, Spalten und Datumsformat automatisch vor.
+
+### D21 – camt.053
+
+Geparst mit `DOMParser`, unabhängig von Namensraum und Version. Nur gebuchte Einträge (`Sts` = `BOOK` oder fehlend) werden übernommen; Storno (`RvslInd`) kehrt das Vorzeichen um. Empfänger: bei Abflüssen der Kreditor, bei Zuflüssen der Debitor, sonst `AddtlNtryInf`. Der Schlusssaldo (`CLBD`) wird in der Vorschau neben dem App-Saldo angezeigt.
+
+### D22 – Duplikat-Hash
+
+Schlüssel = Bankreferenz (falls vorhanden), sonst Konto + Datum + Betrag + normalisierter Text. Gleiche Schlüssel innerhalb einer Datei werden durchnummeriert, damit zwei identische Kaffees am selben Tag nicht als Duplikat gelten. Hash: FNV-1a (nicht kryptografisch, reicht zur Erkennung). Gespeichert in `Transaction.importHash`.
+
+### D23 – Regeln und Vorschläge
+
+Regeln vergleichen ohne Gross-/Kleinschreibung und Akzente («Text enthält»). Reihenfolge: Priorität, dann längeres Muster zuerst. Vorschläge entstehen aus Empfängern, die mindestens zweimal einheitlich derselben Kategorie zugeordnet wurden und von keiner Regel erfasst sind. Das Muster ist das erste Wort des Empfängers (bei kurzen Wörtern die ersten zwei), ohne Zahlen, Datum und «Karte».
+
+### D24 – Wiederkehrende Buchungen
+
+RRULE-Teilmenge: `FREQ` (DAILY/WEEKLY/MONTHLY/YEARLY), `INTERVAL`, `BYMONTHDAY`. Der Ankertag verhindert, dass ein 31. nach Februar dauerhaft zum 28. wird. Fällige Termine werden beim Entsperren und danach einmal täglich automatisch gebucht. Vorlagen mit ungültigem Konto werden deaktiviert statt Fehler zu werfen.
+
+### D25 – Rücklagen
+
+r = (B − A) / n, wobei A der Topfstand zu Monatsbeginn ist (ohne die Beiträge des laufenden Monats) und n die Anzahl Budgetmonate bis zum Fälligkeitsmonat (mindestens 1). Der Beitrag wird vom **Monatsbudget** in die Rücklage gebucht (er ist Teil von S). Liegt die Fälligkeit in der Vergangenheit, gibt es keinen Beitrag, sondern einen Hinweis, das Datum anzupassen.
+
+### D26 – Reste im Monatsabschluss
+
+Am Ende von Monat M bleibt im Monatsbudget-Topf genau die Summe der positiven Reste von Kategorien mit `rolloverRest`. Ein Überschuss geht in den Puffer (`rest`), ein Fehlbetrag wird aus dem Puffer gedeckt (`overspend`). Das deckt überzogene Kategorien und unverplantes Geld in einem Schritt ab und hält die Invariante. Die Bewegungen tragen die Notiz `closing:M` und werden nur einmal gebucht.
+
+### D27 – Überlauf
+
+Verteilt auf Sparziele mit Gewicht > 0, die ihren Zielbetrag noch nicht erreicht haben. Anteile werden auf den fehlenden Betrag begrenzt; was übrig bleibt, bleibt im Puffer.
+
+### D28 – Gesperrte Monate
+
+Ein abgeschlossener Monat friert seine Snapshots ein. Buchungen darin lassen sich weiterhin ändern, die Eingabemaske zeigt dann eine Warnung. Ein Monat kann wieder geöffnet werden.
+
+### D29 – Korrekturbuchung beim Bankabgleich
+
+Die Differenz wird als unkategorisierte Buchung am letzten Tag des Monats erfasst. Nach den Regeln aus D1 wirkt ein Fehlbetrag auf das Monatsbudget und ein Überschuss auf den Puffer.
+
+### D30 – PWA
+
+`vite-plugin-pwa` (generateSW, autoUpdate). Der Service Worker cacht ausschliesslich die gebauten App-Dateien (JS, CSS, HTML, Icons, Manifest), keine Laufzeitdaten. Die Registrierung erfolgt über eine externe Datei (`registerSW.js`), damit die CSP ohne Inline-Skripte auskommt.
+
+### D31 – Speichern vor dem Download der Sicherung
+
+Der Vermerk «letzte Sicherung» wird gespeichert, bevor die Datei erzeugt wird. Sonst ging er verloren, wenn die Seite direkt nach dem Download geschlossen wurde, und der Einrichtungsschritt erschien erneut.
+
+## Phase 3
+
+### D32 – Schulden nicht budgetrelevant, Raten aus dem Monatsbudget
+
+Wäre ein Schuldkonto budgetrelevant, würde eine bestehende Schuld (z. B. −3'000 CHF Studienkredit) den Puffer dauerhaft ins Minus drücken und die Reichweite wäre immer «rot». Deshalb sind Schuldkonten standardmässig **nicht** budgetrelevant. Eine Rate ist eine wiederkehrende Umbuchung vom Privatkonto auf das Schuldkonto. Weil sie die Grenze budgetrelevant → nicht budgetrelevant überschreitet, belastet sie einen Topf, bei Schuldkonten standardmässig das **Monatsbudget**. Damit ist die Rate eine Budgetzeile innerhalb von S, wie im Puffer-Modell verlangt. Andere Umbuchungen über die Grenze (z. B. ins Depot) kommen weiterhin aus dem Puffer. Die letzte Rate wird auf den offenen Betrag gekürzt, danach endet der Ratenplan automatisch. Zinsen werden nicht berechnet; sie lassen sich als Ausgabe erfassen.
+
+### D33 – Geteilte Kosten
+
+Personen sind Konten. «Wer schuldet wem» ist immer aus meiner Sicht: Saldo > 0 heisst, die Person schuldet mir etwas, Saldo < 0, ich schulde ihr. Bei einer geteilten Ausgabe wird der Betrag exakt auf Rappen aufgeteilt (gleichmässig oder nach Gewichten), Rest-Rappen gehen an die ersten Anteile. Hat eine Person bezahlt, entsteht nur eine Buchung auf ihrem Konto mit meinem Anteil als Ausgabe; die Anteile Dritter betreffen mich nicht. Der Ausgleich ist eine Umbuchung zwischen Personenkonto und einem eigenen Konto (z. B. Twint) und zählt nie als Einkommen.
+
+### D34 – Rückerstattungen
+
+Eine Rückerstattung ist eine positive Buchung auf **dieselben Ausgabe-Kategorien** wie das Original, verknüpft über `refundOfId`. Ist das Original auf mehrere Kategorien aufgeteilt, wird die Rückerstattung im selben Verhältnis aufgeteilt. Dadurch sinkt die Ausgabe der Kategorie in Statistik und Budget, statt als Einnahme zu erscheinen. Wird das Original gelöscht, bleibt die Rückerstattung bestehen, nur die Verknüpfung entfällt. Erstattbar ist höchstens der eigene Ausgabe-Anteil des Originals (bei geteilten Kosten also nicht die Anteile der anderen) abzüglich bereits erfasster Rückerstattungen.
+
+### D35 – Belege
+
+Fotos werden im Browser per Canvas auf max. 1600 px (längste Kante) verkleinert und als WebP kodiert, als JPEG, wenn der Browser kein WebP kodieren kann (Safari). Das Neu-Kodieren entfernt EXIF-Metadaten wie GPS-Koordinaten. Jeder Beleg wird einzeln mit AES-GCM verschlüsselt und separat in IndexedDB gespeichert; im Datenbestand stehen nur die Metadaten. Angezeigt werden Belege über kurzlebige `blob:`-URLs (CSP `img-src blob:`). Verwaiste Belege (gelöschte Buchung, abgebrochene Erfassung) werden beim Entsperren aufgeräumt.
+
+### D36 – Hinweise
+
+Es gibt keinen Server für Push-Nachrichten, deshalb zeigt die Übersicht Hinweise an. Sie werden bei jeder Anzeige neu berechnet:
+
+- Monatsabschluss fällig (ältester offener Monat)
+- Budget einer Kategorie zu ≥ 80 % verbraucht bzw. überzogen (nicht bei genau aufgebrauchtem Budget, z. B. Miete)
+- Abo in den nächsten 7 Tagen fällig
+- Puffer reicht weniger als 2 Monate
+- letzte Sicherung älter als 30 Tage (zusätzlich zum Auftrag)
+
+Ausgeblendete Hinweise werden mit einem Schlüssel pro Zeitraum gespeichert (z. B. Kategorie + Monat). Im nächsten Monat erscheint ein Hinweis darum wieder. Gespeichert werden höchstens die letzten 200 Schlüssel.
+
+## Phase 4
+
+### D37 – Wert eines Anlagekontos
+
+Wert = Geldsaldo aus Buchungen + Marktwert der Positionen (Stückzahl × letzter bekannter Kurs bis zum Stichtag; ohne Kurs gilt der Kaufkurs). Ein Kauf erhöht die Position und erzeugt eine Buchung mit `holdingId`, die den Geldsaldo um Kurs × Stück + Gebühren senkt. So bleibt der Wert beim Kauf unverändert. Solche Buchungen zählen weder als Einnahme noch als Ausgabe und erscheinen nicht als «unkategorisiert». Wer nur den Bestand pflegen will (z. B. bestehendes 3a-Konto), nutzt «Bestand erfassen» ohne Geldfluss.
+
+### D38 – Kaufkurs und realisierte Gewinne
+
+Beim Kauf gilt der gewichtete Durchschnitts-Kaufkurs inklusive Gebühren. Beim Verkauf bleibt der Kaufkurs pro Stück gleich, die Stückzahl sinkt. Der realisierte Gewinn wird angezeigt, aber nicht als Einkommen gebucht; er steckt im Geldsaldo und damit im Vermögen. Kursgewinne fliessen nicht in den Puffer. Geld aus dem Depot zurück auf ein budgetrelevantes Konto ist eine Umbuchung und landet nach D1 im Puffer.
+
+### D39 – Anlagekonten bleiben nicht budgetrelevant
+
+Depot, 3a und Krypto sind standardmässig nicht budgetrelevant (Auftrag). Markiert man ein Anlagekonto trotzdem als budgetrelevant, zählt für die Invariante nur der Geldsaldo, nicht der Marktwert.
+
+### D40 – Kurse
+
+Kurse werden pro Wertpapier und Tag gespeichert (ein Kurs pro Tag; ein neuer Eintrag ersetzt den alten). Quellen: manuelle Eingabe, der Kurs eines Kaufs/Verkaufs, CSV-Import (Spalten Datum, ISIN/Ticker/Symbol, Kurs; Zuordnung über ISIN oder Ticker) und optional CoinGecko. ISINs werden mit Prüfziffer validiert. Stückzahlen dürfen gebrochen sein (Krypto) und werden auf 10 Nachkommastellen gerundet.
+
+### D41 – CoinGecko (optional)
+
+Standardmässig aus (Einstellungen → Vermögen). Abgerufen wird nur auf Knopfdruck, nie automatisch im Hintergrund. Gesendet werden nur die CoinGecko-IDs und die Währung (`/api/v3/simple/price?ids=…&vs_currencies=chf`), ohne Cookies und Referrer. `connect-src` der CSP enthält deshalb `https://api.coingecko.com`. Ein Browsertest prüft, dass ohne Einwilligung keine Anfrage erfolgt und die URL keine Mengen enthält.
+
+### D42 – Vermögensverlauf
+
+Der Verlauf kommt aus den Monats-Snapshots, die seit Phase 1 geschrieben werden. Bei Anlagekonten enthält ein Snapshot den Marktwert zum Monatsende. Es gibt keine Historie der Stückzahlen: Für noch offene vergangene Monate rechnet die App mit dem aktuellen Bestand und dem damaligen Kurs. Abgeschlossene Monate bleiben eingefroren und damit korrekt. Regelmässige Monatsabschlüsse machen den Verlauf also genau.
+
+### D43 – Jahresübersicht
+
+Eigene Seite mit Saldo, Sparquote, bestem und schwächstem Monat, Vermögen am Jahresende und Veränderung, einer Monatstabelle mit Vermögen und Veränderung sowie Ausgaben nach Kategorie (Anteil, Ø pro aktivem Monat). Auf der Übersicht ersetzt eine Vermögenskarte mit Link die frühere Tabelle.
